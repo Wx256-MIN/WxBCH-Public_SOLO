@@ -380,7 +380,6 @@ async function refreshData(){
   $('heroHash').textContent=fmtHash(poolHash);$('heroMiners').textContent=fmtNum(x.miners_connected)+' connected';$('heroJob').textContent=x.job_id||'—';
   $('stratum').textContent='stratum+tcp://'+location.hostname+':3334';
   const networkDiff=Number(m.difficulty||0);
-  const luckPct=networkDiff>0?(submittedWork/networkDiff*100):null;
   $('difficulty').textContent=fmtDifficulty(m.difficulty);
     $('networkHashrate').textContent=fmtHash(m.networkhashps);$('poolHashrate').textContent=fmtHash(poolHash);
   $('bestDiff').textContent=workers.length?Math.max(...workers.map(w=>Number(w.best_diff||0))).toFixed(6):'—';$('accepted').textContent=fmtNum(accepted);$('rejected').textContent=fmtNum(rejected)+' ('+(total?(rejected/total*100).toFixed(2):'0')+'%)';
