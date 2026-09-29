@@ -67,8 +67,19 @@ async def main_async():
     web = Web(cfg, None, None, db)
     web.start()
 
+    # Connect to the Umbrel BCHN node immediately, even before a payout
+    # address has been entered. This lets the dashboard show live node
+    # information automatically while the pool remains in setup mode.
+    rpc = BCHRPC(cfg.rpc_url, cfg.rpc_user, cfg.rpc_password)
+    web.rpc = rpc
+    try:
+        await asyncio.to_thread(rpc.get_blockchain_info)
+        log.info("BCHN RPC connected automatically: %s", cfg.rpc_url)
+    except Exception as exc:
+        log.error("BCH RPC is not reachable: %s", exc)
+
     if not cfg.configured:
-        log.warning("BCH Solo Pool is in setup mode; open the web UI to configure it.")
+        log.warning("BCH Solo Pool is in setup mode; enter a payout address to start mining.")
         await asyncio.Event().wait()
         return
 
@@ -80,7 +91,6 @@ async def main_async():
         await asyncio.Event().wait()
         return
 
-    rpc = BCHRPC(cfg.rpc_url, cfg.rpc_user, cfg.rpc_password)
     try:
         await asyncio.to_thread(rpc.get_blockchain_info)
     except Exception as exc:
