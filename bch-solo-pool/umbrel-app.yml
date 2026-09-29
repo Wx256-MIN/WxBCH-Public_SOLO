@@ -2,12 +2,13 @@ manifestVersion: 1
 id: bch-solo-pool
 category: finance
 name: BCH Solo Pool
-version: "1.1.1"
+version: "1.1.2"
 tagline: Self-hosted Bitcoin Cash solo mining pool
 
 releaseNotes: >-
-  Adds a community-store compatible app icon and improves Umbrel installation
-  metadata while keeping the BCH solo pool runtime unchanged.
+  Fixes Umbrel runtime permissions for the persistent data directory, adds a
+  container healthcheck, and moves the Umbrel web proxy to a dedicated host port
+  to avoid common port-8080 conflicts.
 
 description: >-
   Self-hosted Bitcoin Cash solo mining pool for BCHN/AxeBCH and SHA-256 ASIC miners.
@@ -23,6 +24,6 @@ submitter: Wx256-MIN
 submission: https://github.com/getumbrel/umbrel-apps
 
 dependencies: []
-port: 8080
+port: 3567
 icon: https://cdn.jsdelivr.net/gh/Wx256-MIN/WxBCH-SOLO@main/bch-solo-pool/icon.svg
 gallery: []
