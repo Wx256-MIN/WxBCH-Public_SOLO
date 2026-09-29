@@ -281,111 +281,126 @@ main{max-width:1320px;margin:auto;padding:22px clamp(12px,3vw,30px) 60px;positio
 .compact .card{padding:13px}.compact .metric{padding:12px}.compact .metrics{gap:7px}.compact .workerMeta{margin-top:6px}.hidden{display:none!important}.muted{color:var(--muted)}
 .empty{padding:18px 8px;color:var(--muted);font-size:11px;text-align:center}
 .footer{color:#829087;text-align:center;font-size:10px;padding-top:5px}
-@media (max-width:1100px){
-  main{max-width:100%;padding-left:18px;padding-right:18px}
+/* Responsive layout */
+main,.topbar,.hero,.metrics,.dashboardGrid,.card,.heroMain,.heroCopy,.topActions,.heroActions,.metric,.kvItem,.worker,.tableWrap{min-width:0}
+body{overflow-x:hidden}
+.heroCopy{flex:1 1 auto}
+.heroActions{flex:0 0 auto}
+.dashboardGrid>div{min-width:0}
+
+@media (max-width:1199px){
+  main{max-width:1180px;padding-left:20px;padding-right:20px}
   .metrics{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .dashboardGrid{grid-template-columns:minmax(0,1.25fr) minmax(280px,.85fr)}
+  .heroMain{gap:18px}
+}
+@media (max-width:980px){
+  main{padding:16px 16px 50px}
   .dashboardGrid{grid-template-columns:1fr}
   .heroMain{flex-direction:column}
   .heroActions[style]{margin-top:0!important}
+  .heroActions{width:100%}
+  .heroActions .btn{flex:0 1 auto}
 }
-@media (max-width:820px){
-  main{padding:14px 14px 52px}
-  .topbar{align-items:flex-start}
-  .topActions{max-width:55%;justify-content:flex-end}
-  .topActions>.btn:not(.primary){display:none}
-  .brand h1{font-size:21px}
+@media (max-width:760px){
+  main{padding:12px 12px 42px}
+  .topbar{align-items:center;gap:10px}
+  .brand{min-width:0;flex:1}
+  .brand h1{font-size:20px}
   .brand .sub{font-size:10px}
-  .logo{width:48px;height:48px}
-  .hero{padding:20px;border-radius:24px}
-  .heroMain{gap:16px}
+  .logo{width:46px;height:46px;flex:0 0 46px}
+  .topActions{max-width:none;flex:0 0 auto;justify-content:flex-end}
+  .topActions>.btn:not(.primary){display:none}
+  .themeToggle button{font-size:10px;padding:7px 8px}
+  .topActions>.btn.primary{font-size:11px;padding:9px 10px}
+  .hero{padding:20px;border-radius:22px}
+  .endpoint{font-size:clamp(15px,3.4vw,22px)}
   .heroStats{grid-template-columns:repeat(2,minmax(0,1fr));max-width:none}
   .heroStat:nth-child(3){grid-column:1/-1}
   .metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-  .metric{min-width:0;padding:14px}
   .metric:nth-child(5){grid-column:1/-1}
-  .card{min-width:0;padding:16px;border-radius:20px}
+  .card{padding:16px;border-radius:20px}
   .kv{grid-template-columns:repeat(2,minmax(0,1fr))}
   .workerGrid{grid-template-columns:1fr}
-  .tableWrap{max-width:100%;overflow-x:auto}
+  .workerTop{align-items:flex-start}
 }
-@media (max-width:600px){
-  html,body{width:100%;max-width:100%;overflow-x:hidden}
-  main{width:100%;max-width:100%;padding:10px 10px 42px}
-  .topbar{gap:10px;margin-bottom:12px}
-  .brand{gap:9px;min-width:0}
-  .brand>div:last-child{min-width:0}
-  .brand h1{font-size:18px;white-space:nowrap}
-  .brand .sub{font-size:9px;line-height:1.3;max-width:180px}
-  .logo{width:42px;height:42px;border-radius:14px;font-size:21px;border-width:3px;flex:0 0 auto}
-  .topActions{gap:5px;max-width:none;flex:0 0 auto}
-  .pill{font-size:8px;padding:7px 8px}
-  .themeToggle{padding:3px}
-  .themeToggle button{font-size:10px;padding:7px 7px}
-  .topActions>.btn.primary{padding:9px 10px;font-size:11px}
-  .hero{padding:15px;border-radius:20px;margin-bottom:9px}
+@media (max-width:560px){
+  main{padding:8px 8px 32px}
+  .topbar{align-items:flex-start;margin-bottom:10px}
+  .brand{gap:8px}
+  .logo{width:40px;height:40px;flex-basis:40px;border-radius:13px;font-size:20px;border-width:3px}
+  .brand h1{font-size:17px;white-space:nowrap}
+  .brand .sub{display:none}
+  .topActions{gap:4px}
+  .topActions .pill{font-size:7px;padding:6px 7px;gap:4px}
+  .dot{width:6px;height:6px}
+  .themeToggle{padding:2px;border-radius:10px}
+  .themeToggle button{font-size:9px;padding:6px 6px}
+  .topActions>.btn.primary{font-size:10px;padding:8px 8px;border-radius:11px}
+  .hero{padding:14px;border-radius:17px}
   .eyebrow{font-size:8px}
-  .endpoint{font-size:14px;line-height:1.35;margin:6px 0;word-break:break-all}
-  .hint{font-size:10px;line-height:1.5}
-  .heroStats{grid-template-columns:1fr 1fr;gap:6px;margin-top:13px}
-  .heroStat{padding:8px 9px;border-radius:12px}
-  .heroStat span{font-size:8px}
-  .heroStat b{font-size:11px}
-  .heroActions{gap:6px}
-  .heroActions .btn{flex:1;min-width:0;padding:9px 8px;font-size:11px}
-  .metrics{grid-template-columns:1fr 1fr;gap:6px;margin-bottom:9px}
-  .metric{padding:11px;border-radius:14px}
-  .metric .label{font-size:8px}
-  .metric .value{font-size:17px;margin-top:5px}
-  .metric .small{font-size:9px}
-  .metric:nth-child(5){grid-column:1/-1}
-  .dashboardGrid{gap:9px}
-  .card{padding:12px;border-radius:16px;margin-bottom:9px}
-  .cardHead{margin-bottom:10px;gap:8px}
-  .card h2{font-size:14px}
-  .sectionTag{font-size:8px;padding:5px 7px}
-  .kv{grid-template-columns:1fr 1fr;gap:6px}
-  .kvItem{padding:9px;border-radius:12px;min-width:0}
-  .kvItem span{font-size:8px}
-  .kvItem b{font-size:11px;overflow-wrap:anywhere}
-  .progressBox{grid-template-columns:64px minmax(0,1fr);gap:12px}
-  .ring{width:64px;height:64px}
-  .ring:after{inset:8px}
-  .ring b{font-size:12px}
-  .progressText b{font-size:12px}
-  .progressText p{font-size:9px}
-  .controls{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-  .controls .btn,.controls .toggle{min-width:0;justify-content:center;padding:9px 7px;font-size:10px}
-  .notice{font-size:9px;padding:10px}
-  .workerGrid{grid-template-columns:1fr}
-  .worker{padding:11px}
-  .workerMeta{gap:5px}
-  .workerMeta div{padding:6px;min-width:0}
-  .workerMeta b{font-size:9px}
-  .tableWrap{width:100%;border-radius:11px}
-  table{min-width:560px}
-  th,td{padding:9px 7px;font-size:9px}
-  .event{gap:8px;padding:8px 0}
-  .eventIcon{width:27px;height:27px;border-radius:9px}
-  .eventText{font-size:10px}
-  .eventTime{font-size:8px}
-  .footer{font-size:8px}
+  .endpoint{font-size:13px;line-height:1.4;margin:5px 0}
+  .hint{font-size:9px;line-height:1.45}
+  .heroStats{gap:5px;margin-top:11px}
+  .heroStat{padding:8px 9px;border-radius:11px}
+  .heroStat span{font-size:7px}
+  .heroStat b{font-size:10px}
+  .heroActions{gap:5px;margin-top:12px}
+  .heroActions .btn{padding:8px 7px;font-size:10px;border-radius:11px}
+  .metrics{gap:5px;margin-bottom:8px}
+  .metric{padding:10px;border-radius:13px}
+  .metric .label{font-size:7px}
+  .metric .value{font-size:16px;margin-top:4px}
+  .metric .small{font-size:8px}
+  .card{padding:11px;border-radius:15px;margin-bottom:8px}
+  .cardHead{margin-bottom:9px}
+  .card h2{font-size:13px}
+  .cardHead .muted{font-size:9px}
+  .sectionTag{font-size:7px;padding:5px 6px}
+  .kv{gap:5px}
+  .kvItem{padding:8px;border-radius:11px}
+  .kvItem span{font-size:7px;margin-bottom:4px}
+  .kvItem b{font-size:10px}
+  .progressBox{grid-template-columns:58px minmax(0,1fr);gap:10px}
+  .ring{width:58px;height:58px}
+  .ring:after{inset:7px}
+  .ring b{font-size:11px}
+  .progressText b{font-size:11px}
+  .progressText p{font-size:8px}
+  .controls{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+  .controls .btn,.controls .toggle{min-width:0;width:100%;justify-content:center;padding:8px 5px;font-size:9px}
+  .notice{padding:9px;font-size:8px}
+  .worker{padding:9px}
+  .workerName{font-size:10px}
+  .workerHash{font-size:9px}
+  .workerMeta{gap:4px;margin-top:7px}
+  .workerMeta div{padding:5px;border-radius:8px}
+  .workerMeta span{font-size:7px}
+  .workerMeta b{font-size:8px}
+  .tableWrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table{min-width:540px}
+  th,td{padding:8px 6px;font-size:8px}
+  .event{gap:7px;padding:7px 0}
+  .eventIcon{width:25px;height:25px;border-radius:8px;font-size:11px;flex:0 0 25px}
+  .eventText{font-size:9px}
+  .eventTime{font-size:7px}
+  .footer{font-size:7px}
   .setup .split{grid-template-columns:1fr}
-  .field input{font-size:12px;padding:11px}
+  .field input{font-size:11px;padding:10px}
 }
 @media (max-width:390px){
-  .topbar{align-items:center}
-  .brand h1{font-size:16px}
-  .brand .sub{display:none}
   .topActions .pill{display:none}
-  .themeToggle button{font-size:9px;padding:6px}
-  .topActions>.btn.primary{font-size:10px;padding:8px}
+  .topActions>.btn.primary{font-size:9px;padding:7px}
+  .themeToggle button{font-size:8px;padding:5px}
   .heroStats{grid-template-columns:1fr}
   .heroStat:nth-child(3){grid-column:auto}
   .metrics{grid-template-columns:1fr}
   .metric:nth-child(5){grid-column:auto}
   .kv{grid-template-columns:1fr}
   .controls{grid-template-columns:1fr}
-  .endpoint{font-size:13px}
+}
+@media (min-width:981px){
+  .heroActions[style]{align-self:flex-start}
 }
 </style>
 </head>
