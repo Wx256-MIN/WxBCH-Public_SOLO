@@ -164,6 +164,9 @@ class Web:
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#07111a">
+<link rel="icon" type="image/svg+xml" href="https://cdn.jsdelivr.net/gh/Wx256-MIN/WxBCH-SOLO@bc23d30cf1efe7e79d428e1d3b270da64bfd5762/bch-solo-pool/icon.svg">
+<link rel="shortcut icon" href="https://cdn.jsdelivr.net/gh/Wx256-MIN/WxBCH-SOLO@bc23d30cf1efe7e79d428e1d3b270da64bfd5762/bch-solo-pool/icon.svg">
+<link rel="apple-touch-icon" href="https://cdn.jsdelivr.net/gh/Wx256-MIN/WxBCH-SOLO@bc23d30cf1efe7e79d428e1d3b270da64bfd5762/bch-solo-pool/icon.svg">
 <title>BCH Solo Pool — Command Center</title>
 <style>
 :root{
