@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -262,7 +263,7 @@ h1{font-size:28px;margin:0}.sub{color:var(--muted);font-size:13px;margin-top:3px
           <label class="toggle"><input id="auto" type="checkbox" checked onchange="setAuto()"> Auto-refresh</label>
           <label class="toggle"><input id="compact" type="checkbox" onchange="document.body.classList.toggle('compact')"> Compact view</label>
         </div>
-        <div class="notice" style="margin-top:12px">The pool refreshes the BCH block template every 5 seconds and on BCHN ZMQ block notifications.</div>
+        <div class="notice" style="margin-top:12px">The pool creates a new mining job only when BCHN reports a new block through ZMQ or when you press New job.</div>
       </section>
 
       <section class="card">
