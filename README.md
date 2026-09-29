@@ -8,7 +8,7 @@ This repository is packaged as an Umbrel Community App Store:
 
 - Store ID: `bch-solo`
 - App ID: `bch-solo-pool`
-- Web dashboard: port `8080`
+- Web dashboard inside container: port `8080` (Umbrel proxy port: `3567`)
 - Stratum V1: port `3334`
 - Supported container architectures: `linux/amd64` and `linux/arm64`
 
@@ -111,7 +111,7 @@ cp bch-solo-pool/.env.example bch-solo-pool/.env
 docker compose -f bch-solo-pool/docker-compose.local.yml up -d --build
 ```
 
-Dashboard: `http://127.0.0.1:8080`
+Dashboard: `http://127.0.0.1:8080` (local Docker development)
 
 Stratum: `stratum+tcp://127.0.0.1:3334`
 
@@ -137,6 +137,8 @@ SHA-256 ASIC miners
 ## Build
 
 GitHub Actions builds `linux/amd64` and `linux/arm64` images and publishes them to GHCR.
+
+Umbrel opens the dashboard through its app proxy on port `3567`; miners continue to use Stratum on `3334`.
 
 Current published tags include:
 
