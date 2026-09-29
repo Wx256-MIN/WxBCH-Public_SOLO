@@ -2,7 +2,7 @@ manifestVersion: 1
 id: bch-solo-pool
 category: finance
 name: BCH Solo Pool
-version: "1.2.6"
+version: "1.2.7"
 tagline: Self-hosted Bitcoin Cash solo mining pool
 
 releaseNotes: >-
