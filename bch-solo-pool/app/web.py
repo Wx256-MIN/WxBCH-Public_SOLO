@@ -67,8 +67,6 @@ class Web:
                     obj = {
                         "setup_required": not outer.cfg.configured,
                         "pool": outer.cfg.pool_id,
-                        "setup_required": False,
-                        "pool": outer.cfg.pool_id,
                         "height": job.height if job else None,
                         "job_id": job.job_id if job else None,
                         "network_target": f"{job.network_target:064x}" if job else None,
@@ -260,7 +258,7 @@ h1{font-size:28px;margin:0}.sub{color:var(--muted);font-size:13px;margin-top:3px
         <div class="controls">
           <button class="btn primary" onclick="newJob()">⚡ New job</button>
           <button class="btn" onclick="refreshData()">↻ Refresh</button>
-          <label class="toggle"><input id="auto" type="checkbox" checked onchange="setAuto()"> Auto-refresh</label>
+          <label class="toggle"><input id="auto" type="checkbox" onchange="setAuto()"> Auto-refresh</label>
           <label class="toggle"><input id="compact" type="checkbox" onchange="document.body.classList.toggle('compact')"> Compact view</label>
         </div>
         <div class="notice" style="margin-top:12px">The pool creates a new mining job only when BCHN reports a new block through ZMQ or when you press New job.</div>
@@ -344,7 +342,7 @@ async function newJob(){
   try{const x=await api('/api/action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'refresh_job'})});if(!x.ok)throw Error(x.error||'Failed');await refreshData()}catch(e){alert('Could not refresh job: '+e.message)}
 }
 async function copyStratum(){try{await navigator.clipboard.writeText('stratum+tcp://'+location.hostname+':3334')}catch(e){prompt('Copy Stratum endpoint:','stratum+tcp://'+location.hostname+':3334')}}
-function setAuto(){if(timer)clearInterval(timer);timer=$('auto').checked?setInterval(refreshData,3000):null}
-refreshData();setAuto();
+function setAuto(){if(timer)clearInterval(timer);timer=$('auto').checked?setInterval(refreshData,30000):null}
+refreshData();
 </script>
 </body></html>"""
