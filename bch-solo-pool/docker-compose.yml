@@ -32,6 +32,13 @@ services:
       DB_PATH: "/data/pool.sqlite3"
       CONFIG_PATH: "/data/config.json"
       LOG_LEVEL: "INFO"
+    networks:
+      default:
+        aliases:
+          - bch-solo-pool-server
+      axebch:
+        aliases:
+          - bch-solo-pool-server
     extra_hosts:
       - "host.docker.internal:host-gateway"
     healthcheck:
@@ -46,3 +53,8 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+
+networks:
+  axebch:
+    external: true
+    name: willitmod-dev-bch_default
