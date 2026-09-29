@@ -269,6 +269,7 @@ main{max-width:1260px;margin:auto;padding:22px 18px 70px;position:relative}
   <div class="metric"><div class="label">Block height</div><div class="value" id="height">—</div><div class="small" id="jobAge">Job age —</div></div>
   <div class="metric"><div class="label">Connected miners</div><div class="value" id="miners">0</div><div class="small">Live Stratum sessions</div></div>
   <div class="metric"><div class="label">BCHN peers</div><div class="value" id="peers">—</div><div class="small">Active node connections</div></div>
+  <div class="metric"><div class="label">Pool luck</div><div class="value" id="luck">—</div><div class="small" id="luckDetail">Estimated work vs network</div></div>
   <div class="metric"><div class="label">Current job</div><div class="value" id="job">—</div><div class="small" id="txs">— transactions</div></div>
  </section>
 
@@ -346,6 +347,7 @@ let timer=null,lastData=null;
 function esc(x){return String(x??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 function fmtHash(n){if(n==null||!isFinite(Number(n)))return '—';n=Number(n);if(n>=1e18)return (n/1e18).toFixed(2)+' EH/s';if(n>=1e15)return (n/1e15).toFixed(2)+' PH/s';if(n>=1e12)return (n/1e12).toFixed(2)+' TH/s';if(n>=1e9)return (n/1e9).toFixed(2)+' GH/s';if(n>=1e6)return (n/1e6).toFixed(2)+' MH/s';if(n>=1e3)return (n/1e3).toFixed(2)+' KH/s';return Math.round(n)+' H/s'}
 function fmtNum(n){if(n==null||!isFinite(Number(n)))return '—';return Number(n).toLocaleString()}\nfunction fmtDifficulty(n){if(n==null||!isFinite(Number(n)))return '—';n=Number(n);if(n>=1e15)return (n/1e15).toFixed(2)+'P';if(n>=1e12)return (n/1e12).toFixed(2)+'T';if(n>=1e9)return (n/1e9).toFixed(2)+'G';if(n>=1e6)return (n/1e6).toFixed(2)+'M';if(n>=1e3)return (n/1e3).toFixed(2)+'K';return n.toFixed(2)}
+function fmtLuck(p){if(p==null||!isFinite(Number(p)))return '—';p=Number(p);if(p<0.01)return p.toFixed(4)+'%';if(p<1)return p.toFixed(2)+'%';if(p<100)return p.toFixed(1)+'%';return p.toFixed(0)+'%'}
 function ago(t){if(!t)return '—';const s=Math.max(0,Date.now()/1000-Number(t));if(s<60)return Math.round(s)+'s ago';if(s<3600)return Math.floor(s/60)+'m ago';if(s<86400)return Math.floor(s/3600)+'h ago';return Math.floor(s/86400)+'d ago'}
 function fmtTime(t){return t?new Date(Number(t)*1000).toLocaleString():'—'}
 async function api(url,opt){const r=await fetch(url,Object.assign({cache:'no-store'},opt||{}));return await r.json()}
@@ -378,7 +380,11 @@ async function refreshData(){
   $('height').textContent=fmtNum(x.height);$('miners').textContent=fmtNum(x.miners_connected);$('peers').textContent=fmtNum(n.connections);$('job').textContent=x.job_id||'—';$('jobAge').textContent=x.job_created?'Job '+ago(x.job_created):'Job age unavailable';$('txs').textContent=fmtNum(x.tx_count)+' transactions';
   $('heroHash').textContent=fmtHash(poolHash);$('heroMiners').textContent=fmtNum(x.miners_connected)+' connected';$('heroJob').textContent=x.job_id||'—';
   $('stratum').textContent='stratum+tcp://'+location.hostname+':3334';
+  const submittedWork=workers.reduce((a,w)=>a+Number(w.shares||0)*Number(w.difficulty||0),0);
+  const networkDiff=Number(m.difficulty||0);
+  const luckPct=networkDiff>0?(submittedWork/networkDiff*100):null;
   $('difficulty').textContent=fmtDifficulty(m.difficulty);$('networkHashrate').textContent=fmtHash(m.networkhashps);$('poolHashrate').textContent=fmtHash(poolHash);
+  $('luck').textContent=fmtLuck(luckPct);$('luckDetail').textContent=luckPct!=null?(submittedWork>0?'Submitted work: '+fmtDifficulty(submittedWork)+' diff':'No accepted work yet'):'Waiting for network difficulty';
   $('bestDiff').textContent=workers.length?Math.max(...workers.map(w=>Number(w.best_diff||0))).toFixed(6):'—';$('accepted').textContent=fmtNum(accepted);$('rejected').textContent=fmtNum(rejected)+' ('+(total?(rejected/total*100).toFixed(2):'0')+'%)';
   $('reward').textContent=x.coinbase_value?((Number(x.coinbase_value)/1e8).toFixed(8)+' BCH'):'—';$('jobTxs').textContent=fmtNum(x.tx_count);$('target').textContent=x.network_target?'0x'+x.network_target.slice(0,18)+'…':'—';
   renderWorkers(workers);
