@@ -342,7 +342,19 @@ async function newJob(){
   try{const x=await api('/api/action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'refresh_job'})});if(!x.ok)throw Error(x.error||'Failed');await refreshData()}catch(e){alert('Could not refresh job: '+e.message)}
 }
 async function copyStratum(){try{await navigator.clipboard.writeText('stratum+tcp://'+location.hostname+':3334')}catch(e){prompt('Copy Stratum endpoint:','stratum+tcp://'+location.hostname+':3334')}}
-function setAuto(){if(timer)clearInterval(timer);timer=$('auto').checked?setInterval(refreshData,30000):null}
+function setAuto(){
+  if(timer)clearInterval(timer);
+  const enabled=$('auto').checked;
+  try{localStorage.setItem('bch_pool_auto_refresh',enabled?'1':'0')}catch(e){}
+  timer=enabled?setInterval(refreshData,30000):null;
+}
+function restoreAuto(){
+  let enabled=true;
+  try{const saved=localStorage.getItem('bch_pool_auto_refresh');if(saved!==null)enabled=saved==='1'}catch(e){}
+  $('auto').checked=enabled;
+  if(enabled)timer=setInterval(refreshData,30000);
+}
 refreshData();
+restoreAuto();
 </script>
 </body></html>"""
