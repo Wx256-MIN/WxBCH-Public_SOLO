@@ -54,24 +54,18 @@ class Web:
                     return
 
                 if path == "/api/status":
-                    if outer.pool is None or outer.rpc is None:
-                        self._send(200, json.dumps({
-                            "setup_required": True,
-                            "pool": outer.cfg.pool_id,
-                            "miners_connected": 0,
-                            "workers": [],
-                            "blocks": [],
-                            "events": [],
-                        }))
-                        return
-                    try:
-                        info = outer.rpc.get_blockchain_info()
-                        mining = outer.rpc.get_mining_info()
-                    except Exception as exc:
-                        info, mining = {"error": str(exc)}, {}
+                    info, mining = {}, {}
+                    if outer.rpc is not None:
+                        try:
+                            info = outer.rpc.get_blockchain_info()
+                            mining = outer.rpc.get_mining_info()
+                        except Exception as exc:
+                            info = {"error": str(exc)}
                     workers, blocks, events = outer.db.snapshot()
-                    job = outer.pool.job
+                    job = outer.pool.job if outer.pool is not None else None
                     obj = {
+                        "setup_required": not outer.cfg.configured,
+                        "pool": outer.cfg.pool_id,
                         "setup_required": False,
                         "pool": outer.cfg.pool_id,
                         "height": job.height if job else None,
@@ -80,7 +74,7 @@ class Web:
                         "job_created": job.created if job else None,
                         "tx_count": len(job.tx_hex) if job else 0,
                         "coinbase_value": job.coinbase_value if job else None,
-                        "miners_connected": len(outer.pool.miners),
+                        "miners_connected": len(outer.pool.miners) if outer.pool is not None else 0,
                         "workers": workers,
                         "blocks": blocks,
                         "events": events,
@@ -301,7 +295,7 @@ function ago(t){if(!t)return '—';const s=Math.max(0,Date.now()/1000-Number(t))
 function fmtTime(t){return t?new Date(Number(t)*1000).toLocaleString():'—'}
 async function api(url,opt){const r=await fetch(url,Object.assign({cache:'no-store'},opt||{}));return await r.json()}
 async function setupState(){
-  try{const c=await api('/api/config');if(!c.configured){await showSetup(true);return false}$('setup').classList.remove('visible');$('dash').classList.remove('hidden');return true}catch(e){return true}
+  try{const c=await api('/api/config');if(!c.configured){await showSetup(true)}else{$('setup').classList.remove('visible')}$('dash').classList.remove('hidden');return true}catch(e){$('dash').classList.remove('hidden');return true}
 }
 async function showSetup(loadSaved=true){
   $('setup').classList.add('visible');$('dash').classList.add('hidden');
@@ -317,7 +311,7 @@ async function saveSetup(){
 }
 async function refreshData(){
   try{
-    if(!(await setupState()))return;
+    await setupState();
     const x=await api('/api/status');lastData=x;
     $('statusText').textContent=x.node?.blocks!=null?(x.node.initialblockdownload?'Node syncing':'Pool online'):'Node offline';
     $('node').textContent=x.node?.blocks!=null?(x.node.initialblockdownload?'Syncing':'Online'):'Offline';
