@@ -77,6 +77,9 @@ class Web:
                         "height": job.height if job else None,
                         "job_id": job.job_id if job else None,
                         "network_target": f"{job.network_target:064x}" if job else None,
+                        "job_created": job.created if job else None,
+                        "tx_count": len(job.tx_hex) if job else 0,
+                        "coinbase_value": job.coinbase_value if job else None,
                         "miners_connected": len(outer.pool.miners),
                         "workers": workers,
                         "blocks": blocks,
@@ -95,6 +98,28 @@ class Web:
 
             def do_POST(self):
                 path = urlparse(self.path).path
+
+                if path == "/api/action":
+                    try:
+                        body = self._json_body()
+                        action = str(body.get("action", "")).strip()
+                        if action == "refresh_job":
+                            if outer.pool is None:
+                                raise ValueError("Pool is not running")
+                            if not getattr(outer, "loop", None):
+                                raise ValueError("Pool event loop is not ready")
+                            future = asyncio.run_coroutine_threadsafe(
+                                outer.pool.refresh_job("dashboard"),
+                                outer.loop
+                            )
+                            future.result(timeout=15)
+                            self._send(200, json.dumps({"ok": True, "message": "New mining job created"}))
+                            return
+                        raise ValueError("Unknown dashboard action")
+                    except Exception as exc:
+                        self._send(400, json.dumps({"ok": False, "error": str(exc)}))
+                    return
+
                 if path != "/api/setup":
                     self._send(404, "not found", "text/plain")
                     return
