@@ -1,8 +1,12 @@
-import sys, unittest
+import sys
+import unittest
+
 sys.path.insert(0, ".")
-from app.crypto import sha256d, encode_compact_target, difficulty_to_target, DIFF1_TARGET, merkle_root
-from app.address import decode_cashaddr, decode_legacy
+
+from app.crypto import sha256d, encode_compact_target, difficulty_to_target, DIFF1_TARGET, merkle_root, hash_meets_target
+from app.address import decode_cashaddr
 from app.stratum import Job
+
 
 class CoreTests(unittest.TestCase):
     def test_sha256d(self):
@@ -14,10 +18,13 @@ class CoreTests(unittest.TestCase):
     def test_compact(self):
         self.assertEqual(encode_compact_target("1d00ffff"), DIFF1_TARGET)
 
+    def test_target_endianness(self):
+        self.assertTrue(hash_meets_target(bytes.fromhex("00000000ffff") + b"\x00" * 26, DIFF1_TARGET))
+        self.assertFalse(hash_meets_target(bytes.fromhex("ffff0000") + b"\x00" * 28, DIFF1_TARGET))
 
     def test_job_header_and_coinbase(self):
         t = {
-            "height": 900000, "previousblockhash": "11"*32,
+            "height": 900000, "previousblockhash": "11" * 32,
             "version": 2, "bits": "1d00ffff", "curtime": 1700000000,
             "mintime": 1699990000, "coinbasevalue": 1000, "transactions": []
         }
@@ -33,9 +40,21 @@ class CoreTests(unittest.TestCase):
         self.assertEqual(merkle_root([h]), h)
 
     def test_cashaddr(self):
-        # well-known BCH mainnet example
         script = decode_cashaddr("bitcoincash:qpm2qsznhks23z7629mms6s4cwef74vcwvy22gdx6a")
         self.assertTrue(script.startswith(b"\x76\xa9"))
+
+    def test_rpc_txid_is_reversed_for_internal_merkle_hash(self):
+        txid = "00" * 31 + "01"
+        t = {
+            "height": 900000, "previousblockhash": "11" * 32,
+            "version": 2, "bits": "1d00ffff", "curtime": 1700000000,
+            "mintime": 1699990000, "coinbasevalue": 1000,
+            "transactions": [{"txid": txid, "data": "01000000"}],
+        }
+        script = decode_cashaddr("bitcoincash:qpm2qsznhks23z7629mms6s4cwef74vcwvy22gdx6a")
+        j = Job(t, script, "test")
+        self.assertEqual(j.tx_hashes[0], bytes.fromhex(txid)[::-1])
+
 
 if __name__ == "__main__":
     unittest.main()
