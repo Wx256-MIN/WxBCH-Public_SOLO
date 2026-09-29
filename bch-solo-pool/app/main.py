@@ -100,6 +100,7 @@ async def main_async():
         return
 
     loop = asyncio.get_running_loop()
+    web.loop = loop
     if cfg.zmq_url:
         threading.Thread(
             target=zmq_thread, args=(cfg, loop, pool), daemon=True
