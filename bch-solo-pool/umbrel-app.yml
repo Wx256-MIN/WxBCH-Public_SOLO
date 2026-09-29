@@ -2,13 +2,13 @@ manifestVersion: 1
 id: bch-solo-pool
 category: finance
 name: BCH Solo Pool
-version: "1.1.6"
+version: "1.1.7"
 tagline: Self-hosted Bitcoin Cash solo mining pool
 
 releaseNotes: >-
   Connects directly to the Umbrel Bitcoin Cash Node (BCHN) app using its exported
   RPC and ZMQ connection details. Also fixes the setup form repeatedly moving
-  focus back to the first field while editing.
+  focus back to the first field while editing. Adds a modern mobile-friendly dashboard with live node, mining, worker, block, event, and job controls.
 
 description: >-
   Self-hosted Bitcoin Cash solo mining pool for the Umbrel BCHN node and SHA-256 ASIC miners.
