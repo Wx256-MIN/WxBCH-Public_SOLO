@@ -2,51 +2,105 @@
 
 A self-hosted Bitcoin Cash (BCH) Solo Stratum V1 pool for BCHN/AxeBCH and SHA-256 ASIC miners.
 
-## What was fixed in this polished build
+## UmbrelOS Community App Store
 
-- Fixed the GitHub Actions workflow filename (`.yml`, not `.ylm`).
-- Uses a public GHCR image name that matches the repository owner.
-- Adds a first-run browser setup page, so you do **not** need to edit the Umbrel compose file to enter RPC credentials or your BCH payout address.
-- Persists configuration under `/data/config.json`.
-- Starts safely in setup mode when required BCH configuration is missing.
-- Adds BCHN RPC connectivity validation before saving setup.
-- Adds SQLite WAL/busy-timeout settings and indexes.
-- Adds Docker healthcheck and `unless-stopped` restart policy.
-- Removes committed Python `__pycache__` artifacts from the intended source tree.
-- Keeps the Stratum endpoint on TCP `3334` and the dashboard on `8080`.
-- Adds stronger Stratum input validation and correct internal transaction-hash byte order for merkle construction.
-- Adds tests for CashAddr, compact targets, coinbase construction, and Stratum job serialization.
+This repository is packaged as an Umbrel Community App Store:
 
-## UmbrelOS
+- Store ID: `bch-solo`
+- App ID: `bch-solo-pool`
+- Web dashboard: port `8080`
+- Stratum V1: port `3334`
+- Supported container architectures: `linux/amd64` and `linux/arm64`
 
-This repository is structured as an Umbrel Community App Store. Umbrel community stores use a root store manifest and an app directory whose ID starts with the store ID.
+### Install from the Umbrel dashboard
 
-1. Add this GitHub repository as a Community App Store in umbrelOS.
-2. Install **BCH Solo Pool**.
-3. Open the app. On first launch it will show the setup screen.
-4. Enter:
-   - BCHN/AxeBCH RPC URL, normally `http://host.docker.internal:8332/`
-   - RPC username/password
-   - Optional ZMQ URL, normally `tcp://host.docker.internal:28332`
-   - BCH payout CashAddr
-5. Save configuration. The app validates RPC connectivity, stores the configuration, and restarts itself.
-6. Connect ASIC miners to:
-   `stratum+tcp://UMBREL-IP:3334`
-7. Use a worker name such as:
-   `bitcoincash:qYOURADDRESS.worker1`
-   with password `x`.
+1. Open the Umbrel App Store.
+2. Open the **Community App Stores** menu.
+3. Add:
+   `https://github.com/Wx256-MIN/WxBCH-SOLO`
+4. Refresh/update the store.
+5. Install **BCH Solo Pool**.
+6. The installed app appears as a normal app tile in the Umbrel dashboard. Open it to reach the first-run setup page.
 
-The dashboard is available through the Umbrel app proxy. The Stratum port is separately exposed on TCP 3334.
+### CLI alternative
+
+From the Umbrel host:
+
+```bash
+sudo ~/umbrel/scripts/repo add https://github.com/Wx256-MIN/WxBCH-SOLO
+sudo ~/umbrel/scripts/repo update
+sudo ~/umbrel/scripts/app install bch-solo-pool
+```
+
+### Important: GHCR image visibility
+
+Umbrel installs the prebuilt image referenced by `docker-compose.yml`:
+
+```text
+ghcr.io/wx256-min/bch-solo-pool:latest
+```
+
+The GitHub Actions build is already publishing the image to GHCR. The **Container Registry package must be public (or otherwise anonymously pullable)** for a normal Umbrel community-store installation.
+
+To check this on GitHub:
+
+1. Open your GitHub profile → **Packages** → **bch-solo-pool**.
+2. Open **Package settings**.
+3. Check **Visibility**.
+4. Set it to **Public** when the package is private.
+
+### First-run setup
+
+Open **BCH Solo Pool** from the Umbrel dashboard.
+
+Enter:
+
+- BCHN/AxeBCH RPC URL, normally `http://host.docker.internal:8332/`
+- RPC username
+- RPC password
+- Optional ZMQ hashblock URL, normally `tcp://host.docker.internal:28332`
+- BCH payout CashAddr
+
+The setup page validates the RPC connection before saving the configuration. Configuration is persisted in the app data directory at `/data/config.json`.
+
+### Miner connection
+
+Point SHA-256 ASIC miners to:
+
+```text
+stratum+tcp://UMBREL-IP:3334
+```
+
+Example worker:
+
+```text
+bitcoincash:qYOURADDRESS.worker1
+```
+
+Password:
+
+```text
+x
+```
+
+The payout address used by the miner is the address that the pool uses when constructing the solo block coinbase.
 
 ## BCHN/AxeBCH networking
 
-The pool container needs access to the node RPC port and, if ZMQ is enabled, the ZMQ hashblock port. The default configuration uses Docker's `host-gateway` mapping for `host.docker.internal`.
+The pool container reaches a BCHN/AxeBCH node through Docker's `host.docker.internal` host-gateway mapping.
+
+Typical endpoints:
+
+```text
+RPC  http://host.docker.internal:8332/
+ZMQ  tcp://host.docker.internal:28332
+```
 
 Never expose BCHN RPC or ZMQ ports directly to the public Internet.
 
 ## Solo-mining behavior
 
-This is solo mining, not PPS/PPLNS. Shares are proof-of-work accounting and health information. A miner is paid only when a valid block candidate is accepted by the BCH network. The pool does not hold private keys.
+This is solo mining, not PPS/PPLNS. Shares are proof-of-work accounting and health information. A miner is paid only when a valid BCH block candidate is accepted by the network. The pool does not hold private keys.
 
 ## Local Docker development
 
@@ -65,25 +119,37 @@ Stratum: `stratum+tcp://127.0.0.1:3334`
 
 ```text
 SHA-256 ASIC miners
-        │
-        │ Stratum V1 :3334
-        ▼
-┌────────────────────────┐
-│      BCH Solo Pool     │
-│ Stratum / GBT / SQLite │
-│ Setup / Dashboard      │
-└────────────┬───────────┘
-             │ JSON-RPC / ZMQ
-             ▼
+        |
+        | Stratum V1 :3334
+        v
++------------------------+
+|      BCH Solo Pool     |
+| Stratum / GBT / SQLite |
+| Setup / Dashboard      |
++------------+-----------+
+             | JSON-RPC / ZMQ
+             v
         BCHN / AxeBCH
          RPC :8332
          ZMQ :28332
 ```
 
-## Security
-
-The included service is intended for a trusted LAN. It does not provide TLS, public-pool authentication, DDoS protection, or a hosted payout service. Keep RPC credentials private and restrict the Stratum port to miners you trust.
-
 ## Build
 
-GitHub Actions builds `linux/amd64` and `linux/arm64` images and publishes them to GHCR. For a production release, pin the image to an immutable multi-architecture digest in `docker-compose.yml`.
+GitHub Actions builds `linux/amd64` and `linux/arm64` images and publishes them to GHCR.
+
+Current published tags include:
+
+```text
+ghcr.io/wx256-min/bch-solo-pool:latest
+ghcr.io/wx256-min/bch-solo-pool:sha-<commit>
+```
+
+For long-term releases, pin the Umbrel compose file to a specific image digest.
+
+## Packaging notes
+
+- Root `umbrel-app-store.yml` defines the Community App Store.
+- `bch-solo-pool/umbrel-app.yml` defines the app metadata.
+- `bch-solo-pool/docker-compose.yml` defines the Umbrel services.
+- `bch-solo-pool/icon.svg` is served through jsDelivr so the Community Store can load the app icon.
