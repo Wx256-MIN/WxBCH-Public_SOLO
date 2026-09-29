@@ -29,15 +29,6 @@ async def stratum_server(pool, cfg):
     return await asyncio.start_server(handler, cfg.stratum_host, cfg.stratum_port)
 
 
-async def poller(pool):
-    while True:
-        await asyncio.sleep(5)
-        try:
-            await pool.refresh_job("poll")
-        except Exception:
-            log.exception("poller error")
-
-
 def zmq_thread(cfg, loop, pool):
     if not cfg.zmq_url:
         return
@@ -119,7 +110,9 @@ async def main_async():
     server = await stratum_server(pool, cfg)
     log.info("Stratum listening on %s:%s", cfg.stratum_host, cfg.stratum_port)
     log.info("Web listening on %s:%s", cfg.web_host, cfg.web_port)
-    asyncio.create_task(poller(pool))
+    # Block templates are refreshed by BCHN ZMQ hashblock notifications.
+    # Do not poll every few seconds: polling creates unnecessary new jobs
+    # and can make miners restart work continuously.
 
     async with server:
         await server.serve_forever()
