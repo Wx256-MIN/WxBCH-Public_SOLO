@@ -169,7 +169,7 @@ table{width:100%;border-collapse:collapse}td,th{padding:8px;border-bottom:1px so
 
 <div class="field">
 <label for="rpc">RPC URL</label>
-<input id="rpc" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" value="http://host.docker.internal:8332/">
+<input id="rpc" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" value="http://10.21.21.50:8332/">
 </div>
 
 <div class="field">
@@ -187,7 +187,7 @@ table{width:100%;border-collapse:collapse}td,th{padding:8px;border-bottom:1px so
 
 <div class="field">
 <label for="zmq">ZMQ hashblock URL (optional)</label>
-<input id="zmq" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" value="tcp://host.docker.internal:28332">
+<input id="zmq" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" value="tcp://10.21.21.50:28332">
 </div>
 
 <div class="field">
@@ -244,7 +244,10 @@ function clearSetupFields(){
 
 async function setupState(){
   let c=await (await fetch('/api/config',{cache:'no-store'})).json();
-  if(!c.configured){showSetup(false);return false}
+  if(!c.configured){
+    if($('setup').classList.contains('hidden')) showSetup(false);
+    return false;
+  }
   $('setup').classList.add('hidden');$('dash').classList.remove('hidden');
   return true;
 }
@@ -257,9 +260,9 @@ async function showSetup(loadSaved=true){
   }
   try{
     let c=await (await fetch('/api/config',{cache:'no-store'})).json();
-    $('rpc').value=c.rpc_url||'';
+    $('rpc').value=c.rpc_url||'http://10.21.21.50:8332/';
     $('user').value=c.rpc_user||'';
-    $('zmq').value=c.zmq_url||'';
+    $('zmq').value=c.zmq_url||'tcp://10.21.21.50:28332';
     $('payout').value=c.payout_address||'';
     $('pass').value='';
     $('setupmsg').textContent='Edit any field and enter the RPC password before saving.';
