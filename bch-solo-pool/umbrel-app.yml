@@ -26,5 +26,5 @@ submission: https://github.com/getumbrel/umbrel-apps
 dependencies:
   - bitcoin-cash-node
 port: 3567
-icon: https://cdn.jsdelivr.net/gh/Wx256-MIN/WxBCH-SOLO@main/bch-solo-pool/icon.svg
+icon: https://cdn.jsdelivr.net/gh/Wx256-MIN/WxBCH-SOLO@main/bch-solo-pool/icon.jpg
 gallery: []
