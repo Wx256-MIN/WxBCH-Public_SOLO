@@ -1,81 +1,65 @@
 # BCH Solo Pool for UmbrelOS
 
-A self-hosted Bitcoin Cash (BCH) Solo Stratum V1 pool designed for BCHN and SHA-256 ASIC miners.
+A self-hosted Bitcoin Cash (BCH) Solo Stratum V1 pool for BCHN/AxeBCH and SHA-256 ASIC miners.
 
-## What this repository contains
+## What was fixed in this polished build
 
-- `bch-solo-pool/` — the Umbrel Community App Store package.
-- `.github/workflows/docker-publish.yml` — builds multi-architecture Docker images and publishes them to GHCR.
-- `bch-solo-pool/tests/` — core unit tests.
+- Fixed the GitHub Actions workflow filename (`.yml`, not `.ylm`).
+- Uses a public GHCR image name that matches the repository owner.
+- Adds a first-run browser setup page, so you do **not** need to edit the Umbrel compose file to enter RPC credentials or your BCH payout address.
+- Persists configuration under `/data/config.json`.
+- Starts safely in setup mode when required BCH configuration is missing.
+- Adds BCHN RPC connectivity validation before saving setup.
+- Adds SQLite WAL/busy-timeout settings and indexes.
+- Adds Docker healthcheck and `unless-stopped` restart policy.
+- Removes committed Python `__pycache__` artifacts from the intended source tree.
+- Keeps the Stratum endpoint on TCP `3334` and the dashboard on `8080`.
+- Adds stronger Stratum input validation and correct internal transaction-hash byte order for merkle construction.
+- Adds tests for CashAddr, compact targets, coinbase construction, and Stratum job serialization.
 
-The package uses BCHN JSON-RPC (`getblocktemplate`, `submitblock`) and optional ZMQ `hashblock` notifications. It does **not** store private keys; the configured BCH payout address receives the coinbase reward when a valid block is found.
+## UmbrelOS
 
-## Install on UmbrelOS
+This repository is structured as an Umbrel Community App Store. Umbrel community stores use a root store manifest and an app directory whose ID starts with the store ID.
 
-This repository is structured as an Umbrel Community App Store. Umbrel's community-store format requires a root `umbrel-app-store.yml` and an app directory whose ID begins with the store ID. See the official Umbrel template for the current format: https://github.com/getumbrel/umbrel-community-app-store
+1. Add this GitHub repository as a Community App Store in umbrelOS.
+2. Install **BCH Solo Pool**.
+3. Open the app. On first launch it will show the setup screen.
+4. Enter:
+   - BCHN/AxeBCH RPC URL, normally `http://host.docker.internal:8332/`
+   - RPC username/password
+   - Optional ZMQ URL, normally `tcp://host.docker.internal:28332`
+   - BCH payout CashAddr
+5. Save configuration. The app validates RPC connectivity, stores the configuration, and restarts itself.
+6. Connect ASIC miners to:
+   `stratum+tcp://UMBREL-IP:3334`
+7. Use a worker name such as:
+   `bitcoincash:qYOURADDRESS.worker1`
+   with password `x`.
 
-### 1. Fork this repository
+The dashboard is available through the Umbrel app proxy. The Stratum port is separately exposed on TCP 3334.
 
-Create your own GitHub fork. In `bch-solo-pool/docker-compose.yml`, replace:
+## BCHN/AxeBCH networking
 
-```text
-ghcr.io/YOUR_GITHUB_USERNAME/bch-solo-pool:v1.0.0
-```
+The pool container needs access to the node RPC port and, if ZMQ is enabled, the ZMQ hashblock port. The default configuration uses Docker's `host-gateway` mapping for `host.docker.internal`.
 
-with your GitHub username/organization.
+Never expose BCHN RPC or ZMQ ports directly to the public Internet.
 
-### 2. Enable GitHub Actions
+## Solo-mining behavior
 
-Push the fork to GitHub. The workflow builds `linux/amd64` and `linux/arm64` images and publishes the image to GitHub Container Registry (GHCR).
-
-Make the published GHCR package **Public**, because an Umbrel device must be able to pull it anonymously.
-
-### 3. Pin the image digest
-
-For a personal/community store, the image tag is convenient for testing. For a production/community-store release, pin the GHCR image to its immutable `sha256` digest in `bch-solo-pool/docker-compose.yml`.
-
-### 4. Add the repository to Umbrel
-
-In umbrelOS, open **App Store → Community App Stores** and add your GitHub repository URL.
-
-Then install **BCH Solo Pool**.
-
-### 5. Configure BCHN
-
-The app needs access to your synchronized BCHN node. Edit the app's compose environment if your node is not reachable at the defaults:
-
-```text
-BCH_RPC_URL=http://host.docker.internal:8332/
-BCH_RPC_USER=poolrpc
-BCH_RPC_PASSWORD=YOUR_RPC_PASSWORD
-BCH_ZMQ_URL=tcp://host.docker.internal:28332
-BCH_PAYOUT_ADDRESS=bitcoincash:qYOUR_ADDRESS
-```
-
-Never expose BCHN RPC or ZMQ ports to the Internet.
+This is solo mining, not PPS/PPLNS. Shares are proof-of-work accounting and health information. A miner is paid only when a valid block candidate is accepted by the BCH network. The pool does not hold private keys.
 
 ## Local Docker development
 
-From `bch-solo-pool/`:
-
 ```bash
-cp .env.example .env
+cp bch-solo-pool/.env.example bch-solo-pool/.env
 # edit .env
 
-docker compose -f docker-compose.local.yml up -d --build
+docker compose -f bch-solo-pool/docker-compose.local.yml up -d --build
 ```
 
-Dashboard: `http://UMBREL-IP:8080`
+Dashboard: `http://127.0.0.1:8080`
 
-Stratum: `stratum+tcp://UMBREL-IP:3334`
-
-Example worker:
-
-```text
-URL:      stratum+tcp://192.168.1.50:3334
-USER:     bitcoincash:qYOURADDRESS.nano3s
-PASSWORD: x
-```
+Stratum: `stratum+tcp://127.0.0.1:3334`
 
 ## Architecture
 
@@ -84,24 +68,22 @@ SHA-256 ASIC miners
         │
         │ Stratum V1 :3334
         ▼
-┌───────────────────────┐
-│     BCH Solo Pool     │
-│ Stratum / GBT / DB    │
-│ Dashboard / Vardiff   │
-└───────────┬───────────┘
-            │ JSON-RPC
-            ▼
-       BCHN Node
-       :8332 RPC
-       :28332 ZMQ
+┌────────────────────────┐
+│      BCH Solo Pool     │
+│ Stratum / GBT / SQLite │
+│ Setup / Dashboard      │
+└────────────┬───────────┘
+             │ JSON-RPC / ZMQ
+             ▼
+        BCHN / AxeBCH
+         RPC :8332
+         ZMQ :28332
 ```
 
-## Important
+## Security
 
-This is **solo mining**, not PPS/PPLNS. Shares are accounting/health information; a payout occurs only when a submitted block is accepted by the BCH network.
+The included service is intended for a trusted LAN. It does not provide TLS, public-pool authentication, DDoS protection, or a hosted payout service. Keep RPC credentials private and restrict the Stratum port to miners you trust.
 
-The included implementation is intended for trusted LAN use. It does not provide TLS, public-pool authentication, DDoS protection, or a hosted payout system.
+## Build
 
-## Development status
-
-The repository is packaged for Umbrel Community App Store use, but a real Umbrel install should still be tested against the exact BCHN/AxeBCH networking setup on the target machine before relying on it for mining.
+GitHub Actions builds `linux/amd64` and `linux/arm64` images and publishes them to GHCR. For a production release, pin the image to an immutable multi-architecture digest in `docker-compose.yml`.

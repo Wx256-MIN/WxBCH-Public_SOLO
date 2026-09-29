@@ -1,12 +1,5 @@
-.env
-*.db
-*.sqlite
-*.sqlite3
 __pycache__/
-*.py[cod]
-.pytest_cache/
+*.pyc
+.env
+*.sqlite3
 .DS_Store
-.vscode/
-.idea/
-bch-solo-pool/data/*
-!bch-solo-pool/data/.gitkeep

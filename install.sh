@@ -2,5 +2,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/bch-solo-pool"
 [ -f .env ] || cp .env.example .env
-echo "Edit bch-solo-pool/.env and set BCH_RPC_URL, BCH_RPC_USER, BCH_RPC_PASSWORD and BCH_PAYOUT_ADDRESS."
-echo "Then run: docker compose -f docker-compose.local.yml up -d --build"
+echo "Local Docker setup:"
+echo "  1. Edit .env with your BCHN/AxeBCH RPC and payout address."
+echo "  2. Run: docker compose -f docker-compose.local.yml up -d --build"
+echo "Umbrel users should add this repository as a Community App Store and configure the pool from its web setup page."
