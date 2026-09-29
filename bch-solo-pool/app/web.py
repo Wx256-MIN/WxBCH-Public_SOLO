@@ -103,7 +103,7 @@ class Web:
                     body = self._json_body()
                     required = ("BCH_RPC_URL", "BCH_RPC_USER", "BCH_PAYOUT_ADDRESS")
                     if any(not str(body.get(k, "")).strip() for k in required):
-                        raise ValueError("RPC URL, RPC username and payout address are required")
+                        raise ValueError("RPC URL, RPC username and BCH payout address are required")
 
                     address_to_script(str(body["BCH_PAYOUT_ADDRESS"]).strip())
                     test_rpc = BCHRPC(
@@ -150,8 +150,12 @@ class Web:
 body{font-family:system-ui,-apple-system,sans-serif;margin:0;background:#0d1117;color:#e6edf3}
 main{max-width:1100px;margin:0 auto;padding:24px}.card{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:18px;margin-bottom:16px}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}.muted{color:#8b949e}
-input{width:100%;box-sizing:border-box;padding:10px;margin:6px 0 12px;background:#0d1117;color:#fff;border:1px solid #30363d;border-radius:7px}
-button{padding:10px 16px;border:0;border-radius:7px;cursor:pointer}.ok{color:#7ee787}.bad{color:#ff7b72}
+.field{margin-bottom:12px}.field label{display:block;margin-bottom:6px}
+input{display:block;width:100%;box-sizing:border-box;padding:12px;margin:0;background:#0d1117;color:#fff;border:1px solid #484f58;border-radius:7px;font-size:16px;outline:none;pointer-events:auto;user-select:text;-webkit-user-select:text}
+input:focus{border-color:#58a6ff;box-shadow:0 0 0 2px rgba(88,166,255,.18)}
+.row{display:flex;gap:8px;align-items:center}.row input{flex:1}
+button{padding:10px 16px;border:0;border-radius:7px;cursor:pointer}.secondary{background:#30363d;color:#fff}.primary{background:#f0f6fc;color:#111}
+.ok{color:#7ee787}.bad{color:#ff7b72}
 table{width:100%;border-collapse:collapse}td,th{padding:8px;border-bottom:1px solid #30363d;text-align:left}code{word-break:break-all}
 .hidden{display:none}.notice{padding:12px;border-radius:8px;background:#21262d}
 </style>
@@ -160,19 +164,46 @@ table{width:100%;border-collapse:collapse}td,th{padding:8px;border-bottom:1px so
 <h1>BCH Solo Pool</h1>
 
 <section id="setup" class="card hidden">
-<h2>First-run setup</h2>
-<p class="muted">Connect directly to your standalone BCHN node. Enter the BCHN RPC credentials and optional ZMQ hashblock endpoint. and the BCH address that should receive the solo block reward. The pool validates the RPC connection before saving.</p>
-<label>RPC URL</label><input id="rpc" value="http://host.docker.internal:8332/">
-<label>RPC username</label><input id="user" value="bchn">
-<label>RPC password</label><input id="pass" type="password">
-<label>ZMQ hashblock URL (optional)</label><input id="zmq" value="tcp://host.docker.internal:28332">
-<label>BCH payout address</label><input id="payout" placeholder="bitcoincash:q...">
-<button onclick="saveSetup()">Save and start</button>
+<h2 id="setupTitle">BCHN node setup</h2>
+<p class="muted">All fields below are editable. Enter your standalone BCHN RPC credentials, optional ZMQ hashblock endpoint, and the BCH address that should receive the solo block reward.</p>
+
+<div class="field">
+<label for="rpc">RPC URL</label>
+<input id="rpc" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" value="http://host.docker.internal:8332/">
+</div>
+
+<div class="field">
+<label for="user">RPC username</label>
+<input id="user" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" value="bchn">
+</div>
+
+<div class="field">
+<label for="pass">RPC password</label>
+<div class="row">
+<input id="pass" type="password" autocomplete="new-password" autocapitalize="none" spellcheck="false">
+<button type="button" class="secondary" onclick="togglePassword()">Show</button>
+</div>
+</div>
+
+<div class="field">
+<label for="zmq">ZMQ hashblock URL (optional)</label>
+<input id="zmq" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" value="tcp://host.docker.internal:28332">
+</div>
+
+<div class="field">
+<label for="payout">BCH payout address <b class="bad">*</b></label>
+<input id="payout" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="bitcoincash:q...">
+</div>
+
+<div class="row">
+<button type="button" class="primary" onclick="saveSetup()">Save and start</button>
+<button type="button" class="secondary" onclick="clearSetupFields()">Clear fields</button>
+</div>
 <p id="setupmsg" class="muted"></p>
 </section>
 
 <section id="dash" class="hidden">
-<div class="card"><button onclick="showSetup()">Reconfigure node / payout</button></div>
+<div class="card"><button type="button" onclick="showSetup()">Reconfigure node / payout</button></div>
 <div class="grid">
 <div class="card">Node <b id="node">...</b></div>
 <div class="card">Height <b id="height">...</b></div>
@@ -193,40 +224,86 @@ table{width:100%;border-collapse:collapse}td,th{padding:8px;border-bottom:1px so
 <script>
 const $=id=>document.getElementById(id);
 function esc(x){return String(x??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+
+function togglePassword(){
+  const p=$('pass');
+  const b=p.parentElement.querySelector('button');
+  if(p.type==='password'){p.type='text';b.textContent='Hide'}
+  else{p.type='password';b.textContent='Show'}
+}
+
+function clearSetupFields(){
+  $('rpc').value='';
+  $('user').value='';
+  $('pass').value='';
+  $('zmq').value='';
+  $('payout').value='';
+  $('setupmsg').textContent='Fields cleared. Enter your BCHN connection details.';
+  $('rpc').focus();
+}
+
 async function setupState(){
-  let c=await (await fetch('/api/config')).json();
-  if(!c.configured){showSetup();return false}
+  let c=await (await fetch('/api/config',{cache:'no-store'})).json();
+  if(!c.configured){showSetup(false);return false}
   $('setup').classList.add('hidden');$('dash').classList.remove('hidden');
   return true;
 }
-async function showSetup(){
+
+async function showSetup(loadSaved=true){
   $('setup').classList.remove('hidden');$('dash').classList.add('hidden');
+  if(!loadSaved){
+    $('rpc').focus();
+    return;
+  }
   try{
-    let c=await (await fetch('/api/config')).json();
-    $('rpc').value=c.rpc_url||$('rpc').value;
-    $('user').value=c.rpc_user||$('user').value;
-    $('zmq').value=c.zmq_url||$('zmq').value;
+    let c=await (await fetch('/api/config',{cache:'no-store'})).json();
+    $('rpc').value=c.rpc_url||'';
+    $('user').value=c.rpc_user||'';
+    $('zmq').value=c.zmq_url||'';
     $('payout').value=c.payout_address||'';
-  }catch(e){}
+    $('pass').value='';
+    $('setupmsg').textContent='Edit any field and enter the RPC password before saving.';
+    $('rpc').focus();
+  }catch(e){
+    $('setupmsg').textContent='Could not load saved settings. You can enter them manually.';
+  }
 }
+
 async function saveSetup(){
+  const rpc=$('rpc').value.trim();
+  const user=$('user').value.trim();
+  const payout=$('payout').value.trim();
+  if(!rpc||!user||!payout){
+    $('setupmsg').textContent='Error: RPC URL, RPC username and BCH payout address are required.';
+    if(!rpc)$('rpc').focus();else if(!user)$('user').focus();else $('payout').focus();
+    return;
+  }
+
   $('setupmsg').textContent='Testing RPC and saving...';
-  const body={BCH_RPC_URL:$('rpc').value,BCH_RPC_USER:$('user').value,BCH_RPC_PASSWORD:$('pass').value,BCH_ZMQ_URL:$('zmq').value,BCH_PAYOUT_ADDRESS:$('payout').value};
+  const body={
+    BCH_RPC_URL:rpc,
+    BCH_RPC_USER:user,
+    BCH_RPC_PASSWORD:$('pass').value,
+    BCH_ZMQ_URL:$('zmq').value.trim(),
+    BCH_PAYOUT_ADDRESS:payout
+  };
   try{
     const r=await fetch('/api/setup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-    const x=await r.json(); $('setupmsg').textContent=x.ok?x.message:('Error: '+x.error);
+    const x=await r.json();
+    $('setupmsg').textContent=x.ok?x.message:('Error: '+x.error);
   }catch(e){$('setupmsg').textContent='Error: '+e}
 }
+
 async function go(){
  try{
   if(!(await setupState())) return;
-  let x=await (await fetch('/api/status')).json();
+  let x=await (await fetch('/api/status',{cache:'no-store'})).json();
   $('height').textContent=x.height??'-';$('miners').textContent=x.miners_connected;
   $('job').textContent=x.job_id??'-';
   $('node').textContent=x.node?.blocks!=null?(x.node.initialblockdownload?'syncing':'synced'):'offline';
   $('stratum').textContent='stratum+tcp://'+location.hostname+':3334';
-  $('workers').innerHTML=(x.workers||[]).map(w=>`<tr><td>${esc(w.worker)}</td><td>${w.shares}</td><td>${w.rejected}</td><td>${Number(w.best_diff).toFixed(6)}</td><td>${new Date(w.last_seen*1000).toLocaleString()}</td></tr>`).join('');
-  $('blocks').innerHTML=(x.blocks||[]).map(b=>`<tr><td>${new Date(b.time*1000).toLocaleString()}</td><td>${b.height}</td><td>${esc(b.worker)}</td><td><code>${esc(b.hash)}</code></td><td>${esc(b.result)}</td></tr>`).join('');
+  $('workers').innerHTML=(x.workers||[]).map(w=>'<tr><td>'+esc(w.worker)+'</td><td>'+w.shares+'</td><td>'+w.rejected+'</td><td>'+Number(w.best_diff).toFixed(6)+'</td><td>'+new Date(w.last_seen*1000).toLocaleString()+'</td></tr>').join('');
+  $('blocks').innerHTML=(x.blocks||[]).map(b=>'<tr><td>'+new Date(b.time*1000).toLocaleString()+'</td><td>'+b.height+'</td><td>'+esc(b.worker)+'</td><td><code>'+esc(b.hash)+'</code></td><td>'+esc(b.result)+'</td></tr>').join('');
  }catch(e){$('node').textContent='offline'}
 }
 go();setInterval(go,3000);
