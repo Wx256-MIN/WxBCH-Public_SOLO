@@ -1,10 +1,40 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
-<title id="title">BCH Solo Pool</title>
-<desc id="desc">Bitcoin Cash solo mining pool icon</desc>
-<rect width="512" height="512" rx="112" fill="#0b6e4f"/>
-<circle cx="256" cy="256" r="166" fill="#f5b700"/>
-<path fill="#0b6e4f" d="M303 119c48 9 78 42 78 83 0 31-16 55-45 69 33 13 53 39 53 74 0 52-42 86-105 95v38h-31v-35c-15 1-31 1-47 0v35h-31v-42l-48-2v-31l27-4V156l-27-4v-31l48-2V82h31v35c16-1 32-1 47 0V82h31v37zm-113 37v101h40c39 0 67-18 67-51 0-34-27-50-67-50h-40zm0 135v111h51c42 0 74-20 74-57 0-37-30-54-74-54h-51z"/>
-<path fill="#fff" opacity=".96" d="M116 368l52-52 26 26-52 52z"/>
-<path fill="#fff" opacity=".96" d="M151 403l90-90 25 25-90 90z"/>
-<path fill="#fff" opacity=".96" d="M225 425l71-71 25 25-71 71z"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<defs>
+ <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#073a9b"/><stop offset=".5" stop-color="#06306e"/><stop offset="1" stop-color="#00b85a"/></linearGradient>
+ <linearGradient id="coin" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f9ff75"/><stop offset=".45" stop-color="#35f06e"/><stop offset="1" stop-color="#00a95c"/></linearGradient>
+ <filter id="glow"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+ <filter id="shadow"><feDropShadow dx="0" dy="8" stdDeviation="9" flood-opacity=".35"/></filter>
+</defs>
+<rect x="8" y="8" width="496" height="496" rx="92" fill="url(#bg)"/>
+<rect x="12" y="12" width="488" height="488" rx="88" fill="none" stroke="#38f5df" stroke-width="7"/>
+<g fill="none" stroke="#58f4bf" stroke-width="5" opacity=".9">
+ <path d="M55 145h55l35-35M55 200h70l35-35M55 365h55l35 35M55 310h70l35 35"/>
+ <path d="M457 145h-55l-35-35M457 200h-70l-35-35M457 365h-55l-35 35M457 310h-70l-35 35"/>
+</g>
+<g fill="#7cff82" filter="url(#glow)">
+ <circle cx="55" cy="145" r="7"/><circle cx="110" cy="145" r="7"/><circle cx="145" cy="110" r="7"/>
+ <circle cx="457" cy="145" r="7"/><circle cx="402" cy="145" r="7"/><circle cx="367" cy="110" r="7"/>
+ <circle cx="55" cy="365" r="7"/><circle cx="110" cy="365" r="7"/><circle cx="145" cy="400" r="7"/>
+ <circle cx="457" cy="365" r="7"/><circle cx="402" cy="365" r="7"/><circle cx="367" cy="400" r="7"/>
+</g>
+<g filter="url(#shadow)">
+ <text x="256" y="235" text-anchor="middle" font-family="Arial,sans-serif" font-size="170" font-weight="900" fill="url(#coin)" stroke="#fff" stroke-width="7">₿</text>
+</g>
+<g stroke="#65ff87" stroke-width="18" stroke-linecap="round" fill="none" filter="url(#glow)">
+ <path d="M145 350l74-65"/><path d="M367 350l-74-65"/>
+</g>
+<g transform="rotate(-28 256 345)" stroke="#fff" stroke-width="7" stroke-linejoin="round">
+ <path d="M165 366l125-25 10 17-125 25z" fill="url(#coin)"/>
+ <path d="M160 365l-36 23 31-2 21-18z" fill="#42e985"/>
+ <path d="M285 340l29-21 23 16-30 22z" fill="#42e985"/>
+</g>
+<g transform="translate(327 365)" filter="url(#shadow)">
+ <circle r="43" fill="#f3c51b" stroke="#fff" stroke-width="5"/>
+ <circle r="32" fill="url(#coin)"/>
+ <text x="0" y="16" text-anchor="middle" font-family="Arial,sans-serif" font-size="42" font-weight="900" fill="#fff">₿</text>
+</g>
+<g transform="translate(256 437)">
+ <text x="0" y="0" text-anchor="middle" font-family="Arial,sans-serif" font-size="48" font-weight="900" fill="#fff" letter-spacing="3">BCHN</text>
+ <text x="0" y="36" text-anchor="middle" font-family="Arial,sans-serif" font-size="23" font-weight="800" fill="#7cff82" letter-spacing="4">SOLO POOL</text>
+</g>
 </svg>
