@@ -161,11 +161,11 @@ table{width:100%;border-collapse:collapse}td,th{padding:8px;border-bottom:1px so
 
 <section id="setup" class="card hidden">
 <h2>First-run setup</h2>
-<p class="muted">Enter the BCHN/AxeBCH RPC details and the BCH address that should receive the solo block reward. The pool validates the RPC connection before saving.</p>
-<label>RPC URL</label><input id="rpc" value="http://host.docker.internal:8332/">
-<label>RPC username</label><input id="user" value="poolrpc">
+<p class="muted">Connect directly to BCHN (including BCHN running inside AxeBCH). and the BCH address that should receive the solo block reward. The pool validates the RPC connection before saving.</p>
+<label>RPC URL</label><input id="rpc" value="http://bchn:28332/">
+<label>RPC username</label><input id="user" value="bch">
 <label>RPC password</label><input id="pass" type="password">
-<label>ZMQ hashblock URL (optional)</label><input id="zmq" value="tcp://host.docker.internal:28332">
+<label>ZMQ hashblock URL (optional)</label><input id="zmq" value="tcp://bchn:28334">
 <label>BCH payout address</label><input id="payout" placeholder="bitcoincash:q...">
 <button onclick="saveSetup()">Save and start</button>
 <p id="setupmsg" class="muted"></p>
