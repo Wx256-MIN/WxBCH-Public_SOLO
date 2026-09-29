@@ -59,7 +59,7 @@ class Config:
         clean = {
             "BCH_RPC_URL": str(data["BCH_RPC_URL"]).strip(),
             "BCH_RPC_USER": str(data["BCH_RPC_USER"]).strip(),
-            "BCH_RPC_PASSWORD": str(data.get("BCH_RPC_PASSWORD", "")),
+            "BCH_RPC_PASSWORD": str(data.get("BCH_RPC_PASSWORD", "")).strip() or self.rpc_password,
             "BCH_ZMQ_URL": str(data.get("BCH_ZMQ_URL", "")).strip(),
             "BCH_PAYOUT_ADDRESS": str(data["BCH_PAYOUT_ADDRESS"]).strip(),
         }
