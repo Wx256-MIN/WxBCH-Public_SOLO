@@ -341,7 +341,7 @@ const $=id=>document.getElementById(id);
 let timer=null,lastData=null;
 function esc(x){return String(x??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 function fmtHash(n){if(n==null||!isFinite(Number(n)))return '—';n=Number(n);if(n>=1e18)return (n/1e18).toFixed(2)+' EH/s';if(n>=1e15)return (n/1e15).toFixed(2)+' PH/s';if(n>=1e12)return (n/1e12).toFixed(2)+' TH/s';if(n>=1e9)return (n/1e9).toFixed(2)+' GH/s';if(n>=1e6)return (n/1e6).toFixed(2)+' MH/s';if(n>=1e3)return (n/1e3).toFixed(2)+' KH/s';return Math.round(n)+' H/s'}
-function fmtNum(n){if(n==null||!isFinite(Number(n)))return '—';return Number(n).toLocaleString()}
+function fmtNum(n){if(n==null||!isFinite(Number(n)))return '—';return Number(n).toLocaleString()}\nfunction fmtDifficulty(n){if(n==null||!isFinite(Number(n)))return '—';n=Number(n);if(n>=1e15)return (n/1e15).toFixed(2)+'P';if(n>=1e12)return (n/1e12).toFixed(2)+'T';if(n>=1e9)return (n/1e9).toFixed(2)+'G';if(n>=1e6)return (n/1e6).toFixed(2)+'M';if(n>=1e3)return (n/1e3).toFixed(2)+'K';return n.toFixed(2)}
 function ago(t){if(!t)return '—';const s=Math.max(0,Date.now()/1000-Number(t));if(s<60)return Math.round(s)+'s ago';if(s<3600)return Math.floor(s/60)+'m ago';if(s<86400)return Math.floor(s/3600)+'h ago';return Math.floor(s/86400)+'d ago'}
 function fmtTime(t){return t?new Date(Number(t)*1000).toLocaleString():'—'}
 async function api(url,opt){const r=await fetch(url,Object.assign({cache:'no-store'},opt||{}));return await r.json()}
@@ -374,7 +374,7 @@ async function refreshData(){
   $('height').textContent=fmtNum(x.height);$('miners').textContent=fmtNum(x.miners_connected);$('job').textContent=x.job_id||'—';$('jobAge').textContent=x.job_created?'Job '+ago(x.job_created):'Job age unavailable';$('txs').textContent=fmtNum(x.tx_count)+' transactions';
   $('heroHash').textContent=fmtHash(poolHash);$('heroMiners').textContent=fmtNum(x.miners_connected)+' connected';$('heroJob').textContent=x.job_id||'—';
   $('stratum').textContent='stratum+tcp://'+location.hostname+':3334';
-  $('difficulty').textContent=fmtNum(m.difficulty);$('networkHashrate').textContent=fmtHash(m.networkhashps);$('poolHashrate').textContent=fmtHash(poolHash);
+  $('difficulty').textContent=fmtDifficulty(m.difficulty);$('networkHashrate').textContent=fmtHash(m.networkhashps);$('poolHashrate').textContent=fmtHash(poolHash);
   $('bestDiff').textContent=workers.length?Math.max(...workers.map(w=>Number(w.best_diff||0))).toFixed(6):'—';$('accepted').textContent=fmtNum(accepted);$('rejected').textContent=fmtNum(rejected)+' ('+(total?(rejected/total*100).toFixed(2):'0')+'%)';
   $('reward').textContent=x.coinbase_value?((Number(x.coinbase_value)/1e8).toFixed(8)+' BCH'):'—';$('jobTxs').textContent=fmtNum(x.tx_count);$('target').textContent=x.network_target?'0x'+x.network_target.slice(0,18)+'…':'—';
   renderWorkers(workers);
