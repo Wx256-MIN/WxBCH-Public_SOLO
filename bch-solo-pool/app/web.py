@@ -206,10 +206,10 @@ h1{font-size:28px;margin:0}.sub{color:var(--muted);font-size:13px;margin-top:3px
 
 <section id="setup" class="card setup">
   <div class="cardHead"><h2>BCHN node setup</h2><button class="btn" onclick="hideSetup()">Close</button></div>
-  <p class="muted">Connect the pool to your standalone BCHN node and set the solo payout address.</p>
+  <p class="muted">BCHN RPC and ZMQ are connected automatically from the Umbrel Bitcoin Cash Node app. You only need to enter your solo BCH payout address.</p>
   <div class="field"><label>RPC URL</label><input id="rpc" type="text" autocomplete="off" autocapitalize="none" spellcheck="false"></div>
   <div class="field"><label>RPC username</label><input id="user" type="text" autocomplete="off" autocapitalize="none" spellcheck="false"></div>
-  <div class="field"><label>RPC password</label><input id="pass" type="password" autocomplete="new-password"></div>
+  <div class="field"><label>RPC password <span class="muted">(leave blank to use Umbrel BCHN password)</span></label><input id="pass" type="password" autocomplete="new-password" placeholder="Automatic from Umbrel BCHN"></div>
   <div class="field"><label>ZMQ hashblock URL</label><input id="zmq" type="text" autocomplete="off" autocapitalize="none" spellcheck="false"></div>
   <div class="field"><label>BCH payout address</label><input id="payout" type="text" autocomplete="off" autocapitalize="none" spellcheck="false"></div>
   <div class="actions"><button class="btn primary" onclick="saveSetup()">Save & restart</button><button class="btn" onclick="clearSetupFields()">Clear</button></div>
@@ -301,7 +301,7 @@ function ago(t){if(!t)return '—';const s=Math.max(0,Date.now()/1000-Number(t))
 function fmtTime(t){return t?new Date(Number(t)*1000).toLocaleString():'—'}
 async function api(url,opt){const r=await fetch(url,Object.assign({cache:'no-store'},opt||{}));return await r.json()}
 async function setupState(){
-  try{const c=await api('/api/config');if(!c.configured){showSetup(false);return false}$('setup').classList.remove('visible');$('dash').classList.remove('hidden');return true}catch(e){return true}
+  try{const c=await api('/api/config');if(!c.configured){await showSetup(true);return false}$('setup').classList.remove('visible');$('dash').classList.remove('hidden');return true}catch(e){return true}
 }
 async function showSetup(loadSaved=true){
   $('setup').classList.add('visible');$('dash').classList.add('hidden');
