@@ -35,6 +35,7 @@ services:
       # Standalone Umbrel BCHN app exports these connection details.
       BCH_RPC_URL: "http://${APP_BITCOIN_CASH_NODE_NODE_IP}:${APP_BITCOIN_CASH_NODE_RPC_PORT}/"
       BCH_RPC_USER: "${APP_BITCOIN_CASH_NODE_RPC_USER}"
+      BCH_RPC_PASSWORD: "${APP_BITCOIN_CASH_NODE_RPC_PASS}"
       BCH_ZMQ_URL: "tcp://${APP_BITCOIN_CASH_NODE_NODE_IP}:${APP_BITCOIN_CASH_NODE_ZMQ_HASHBLOCK_PORT}"
     extra_hosts:
       - "host.docker.internal:host-gateway"
