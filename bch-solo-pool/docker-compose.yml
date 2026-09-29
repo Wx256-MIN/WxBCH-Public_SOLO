@@ -9,6 +9,7 @@ services:
 
   server:
     image: ghcr.io/wx256-min/bch-solo-pool:latest
+    user: "1000:1000"
     restart: unless-stopped
     stop_grace_period: 1m
     init: true
@@ -33,3 +34,15 @@ services:
       LOG_LEVEL: "INFO"
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=3)"
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
