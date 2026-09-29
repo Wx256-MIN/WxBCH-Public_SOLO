@@ -268,6 +268,7 @@ main{max-width:1260px;margin:auto;padding:22px 18px 70px;position:relative}
   <div class="metric"><div class="label">Node</div><div class="value" id="node">—</div><div class="small" id="chain">Checking BCHN…</div></div>
   <div class="metric"><div class="label">Block height</div><div class="value" id="height">—</div><div class="small" id="jobAge">Job age —</div></div>
   <div class="metric"><div class="label">Connected miners</div><div class="value" id="miners">0</div><div class="small">Live Stratum sessions</div></div>
+  <div class="metric"><div class="label">BCHN peers</div><div class="value" id="peers">—</div><div class="small">Active node connections</div></div>
   <div class="metric"><div class="label">Current job</div><div class="value" id="job">—</div><div class="small" id="txs">— transactions</div></div>
  </section>
 
@@ -374,7 +375,7 @@ async function refreshData(){
   $('topStatus').textContent=online?(syncing?'Node syncing':'Pool online'):'Node offline';
   $('statusText') && ($('statusText').textContent=online?(syncing?'Node syncing':'Pool online'):'Node offline');
   $('node').textContent=online?(syncing?'Syncing':'Online'):'Offline';$('chain').textContent=n.chain||'BCHN';
-  $('height').textContent=fmtNum(x.height);$('miners').textContent=fmtNum(x.miners_connected);$('job').textContent=x.job_id||'—';$('jobAge').textContent=x.job_created?'Job '+ago(x.job_created):'Job age unavailable';$('txs').textContent=fmtNum(x.tx_count)+' transactions';
+  $('height').textContent=fmtNum(x.height);$('miners').textContent=fmtNum(x.miners_connected);$('peers').textContent=fmtNum(n.connections);$('job').textContent=x.job_id||'—';$('jobAge').textContent=x.job_created?'Job '+ago(x.job_created):'Job age unavailable';$('txs').textContent=fmtNum(x.tx_count)+' transactions';
   $('heroHash').textContent=fmtHash(poolHash);$('heroMiners').textContent=fmtNum(x.miners_connected)+' connected';$('heroJob').textContent=x.job_id||'—';
   $('stratum').textContent='stratum+tcp://'+location.hostname+':3334';
   $('difficulty').textContent=fmtDifficulty(m.difficulty);$('networkHashrate').textContent=fmtHash(m.networkhashps);$('poolHashrate').textContent=fmtHash(poolHash);
