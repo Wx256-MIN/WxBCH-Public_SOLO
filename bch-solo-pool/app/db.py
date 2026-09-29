@@ -2,11 +2,16 @@ import sqlite3
 import threading
 import time
 
+
 class DB:
     def __init__(self, path):
-        self.conn = sqlite3.connect(path, check_same_thread=False)
+        self.conn = sqlite3.connect(path, check_same_thread=False, timeout=10)
         self.conn.row_factory = sqlite3.Row
         self.lock = threading.Lock()
+        with self.conn:
+            self.conn.execute("PRAGMA journal_mode=WAL")
+            self.conn.execute("PRAGMA synchronous=NORMAL")
+            self.conn.execute("PRAGMA busy_timeout=10000")
         self._init()
 
     def _init(self):
@@ -38,6 +43,9 @@ class DB:
               worker TEXT,
               detail TEXT
             );
+            CREATE INDEX IF NOT EXISTS idx_workers_last_seen ON workers(last_seen);
+            CREATE INDEX IF NOT EXISTS idx_blocks_time ON blocks(time DESC);
+            CREATE INDEX IF NOT EXISTS idx_events_time ON events(time DESC);
             """)
 
     def touch_worker(self, worker, difficulty):
@@ -46,36 +54,51 @@ class DB:
             self.conn.execute("""
               INSERT INTO workers(worker,first_seen,last_seen,difficulty)
               VALUES(?,?,?,?)
-              ON CONFLICT(worker) DO UPDATE SET last_seen=excluded.last_seen,difficulty=excluded.difficulty
+              ON CONFLICT(worker) DO UPDATE SET
+                last_seen=excluded.last_seen,difficulty=excluded.difficulty
             """, (worker, now, now, difficulty))
 
-    def share(self, worker, accepted, best_diff=0.0, hashrate=0.0):
+    def share(self, worker, accepted, best_diff=0.0, hashrate=0.0, difficulty=1.0):
         now = time.time()
         with self.lock, self.conn:
             self.conn.execute("""
               INSERT INTO workers(worker,first_seen,last_seen,shares,rejected,hashrate,difficulty,best_diff)
-              VALUES(?,?,?, ?, ?, ?, 1, ?)
+              VALUES(?,?,?,?,?,?,?,?)
               ON CONFLICT(worker) DO UPDATE SET
                 last_seen=excluded.last_seen,
                 shares=workers.shares+excluded.shares,
                 rejected=workers.rejected+excluded.rejected,
                 hashrate=CASE WHEN excluded.hashrate>0 THEN excluded.hashrate ELSE workers.hashrate END,
+                difficulty=excluded.difficulty,
                 best_diff=MAX(workers.best_diff, excluded.best_diff)
-            """, (worker, now, now, 1 if accepted else 0, 0 if accepted else 1, hashrate, best_diff))
+            """, (
+                worker, now, now, int(accepted), int(not accepted),
+                hashrate, difficulty, best_diff
+            ))
 
     def event(self, kind, worker="", detail=""):
         with self.lock, self.conn:
-            self.conn.execute("INSERT INTO events(time,kind,worker,detail) VALUES(?,?,?,?)",
-                              (time.time(),kind,worker,detail))
+            self.conn.execute(
+                "INSERT INTO events(time,kind,worker,detail) VALUES(?,?,?,?)",
+                (time.time(), kind, worker, detail)
+            )
 
     def block(self, height, job_id, worker, h, result):
         with self.lock, self.conn:
-            self.conn.execute("INSERT INTO blocks(time,height,job_id,worker,hash,result) VALUES(?,?,?,?,?,?)",
-                              (time.time(),height,job_id,worker,h,result))
+            self.conn.execute(
+                "INSERT INTO blocks(time,height,job_id,worker,hash,result) VALUES(?,?,?,?,?,?)",
+                (time.time(), height, job_id, worker, h, result)
+            )
 
     def snapshot(self):
         with self.lock:
-            workers = [dict(x) for x in self.conn.execute("SELECT * FROM workers ORDER BY last_seen DESC")]
-            blocks = [dict(x) for x in self.conn.execute("SELECT * FROM blocks ORDER BY id DESC LIMIT 20")]
-            events = [dict(x) for x in self.conn.execute("SELECT * FROM events ORDER BY id DESC LIMIT 30")]
+            workers = [dict(x) for x in self.conn.execute(
+                "SELECT * FROM workers ORDER BY last_seen DESC"
+            )]
+            blocks = [dict(x) for x in self.conn.execute(
+                "SELECT * FROM blocks ORDER BY id DESC LIMIT 20"
+            )]
+            events = [dict(x) for x in self.conn.execute(
+                "SELECT * FROM events ORDER BY id DESC LIMIT 30"
+            )]
         return workers, blocks, events

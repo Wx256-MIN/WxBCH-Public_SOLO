@@ -1,7 +1,6 @@
 import asyncio
 import logging
 import threading
-import time
 
 from .config import Config
 from .db import DB
@@ -10,6 +9,7 @@ from .stratum import Pool, Miner
 from .web import Web
 
 log = logging.getLogger("bchpool")
+
 
 async def stratum_server(pool, cfg):
     async def handler(reader, writer):
@@ -25,16 +25,18 @@ async def stratum_server(pool, cfg):
             except Exception:
                 pass
             log.info("miner disconnected: %s", peer)
+
     return await asyncio.start_server(handler, cfg.stratum_host, cfg.stratum_port)
+
 
 async def poller(pool):
     while True:
-        await asyncio.sleep(2)
+        await asyncio.sleep(5)
         try:
-            # Polling is also a recovery path if a ZMQ notification is missed.
             await pool.refresh_job("poll")
         except Exception:
-            pass
+            log.exception("poller error")
+
 
 def zmq_thread(cfg, loop, pool):
     if not cfg.zmq_url:
@@ -42,35 +44,66 @@ def zmq_thread(cfg, loop, pool):
     try:
         import zmq
         ctx = zmq.Context()
-        s = ctx.socket(zmq.SUB)
-        s.setsockopt(zmq.SUBSCRIBE, b"hashblock")
-        s.connect(cfg.zmq_url)
+        socket = ctx.socket(zmq.SUB)
+        socket.setsockopt(zmq.SUBSCRIBE, b"hashblock")
+        socket.connect(cfg.zmq_url)
         log.info("ZMQ connected: %s", cfg.zmq_url)
         while True:
-            parts = s.recv_multipart()
+            parts = socket.recv_multipart()
             if parts and parts[0] == b"hashblock":
                 asyncio.run_coroutine_threadsafe(pool.refresh_job("zmq-hashblock"), loop)
     except Exception:
         log.exception("ZMQ listener stopped")
 
+
 async def main_async():
     cfg = Config()
-    logging.basicConfig(level=getattr(logging, cfg.log_level.upper(), logging.INFO),
-                        format="%(asctime)s %(levelname)s %(name)s: %(message)s")
-    if not cfg.payout_address:
-        raise SystemExit("BCH_PAYOUT_ADDRESS is required")
-    rpc = BCHRPC(cfg.rpc_url, cfg.rpc_user, cfg.rpc_password)
+    logging.basicConfig(
+        level=getattr(logging, cfg.log_level.upper(), logging.INFO),
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s"
+    )
+
     db = DB(cfg.db_path)
+    web = Web(cfg, None, None, db)
+    web.start()
+
+    if not cfg.configured:
+        log.warning("BCH Solo Pool is in setup mode; open the web UI to configure it.")
+        await asyncio.Event().wait()
+        return
+
+    from .address import address_to_script
+    try:
+        address_to_script(cfg.payout_address)
+    except Exception as exc:
+        log.error("Invalid BCH_PAYOUT_ADDRESS: %s", exc)
+        await asyncio.Event().wait()
+        return
+
+    rpc = BCHRPC(cfg.rpc_url, cfg.rpc_user, cfg.rpc_password)
+    try:
+        await asyncio.to_thread(rpc.get_blockchain_info)
+    except Exception as exc:
+        log.error("BCH RPC is not reachable: %s", exc)
+        # Keep the setup page available so the user can correct credentials.
+        await asyncio.Event().wait()
+        return
+
     pool = Pool(cfg, rpc, db)
+    web.pool = pool
+    web.rpc = rpc
 
     await pool.refresh_job("startup")
-
-    web = Web(cfg, pool, rpc, db)
-    web.start()
+    if pool.job is None:
+        log.error("Unable to obtain a BCH block template; leaving dashboard available.")
+        await asyncio.Event().wait()
+        return
 
     loop = asyncio.get_running_loop()
     if cfg.zmq_url:
-        threading.Thread(target=zmq_thread, args=(cfg,loop,pool), daemon=True).start()
+        threading.Thread(
+            target=zmq_thread, args=(cfg, loop, pool), daemon=True
+        ).start()
 
     server = await stratum_server(pool, cfg)
     log.info("Stratum listening on %s:%s", cfg.stratum_host, cfg.stratum_port)
@@ -79,6 +112,7 @@ async def main_async():
 
     async with server:
         await server.serve_forever()
+
 
 if __name__ == "__main__":
     try:
