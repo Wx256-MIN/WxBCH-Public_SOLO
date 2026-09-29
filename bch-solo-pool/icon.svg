@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+<title id="title">BCH Solo Pool</title>
+<desc id="desc">Bitcoin Cash solo mining pool icon</desc>
+<rect width="512" height="512" rx="112" fill="#0b6e4f"/>
+<circle cx="256" cy="256" r="166" fill="#f5b700"/>
+<path fill="#0b6e4f" d="M303 119c48 9 78 42 78 83 0 31-16 55-45 69 33 13 53 39 53 74 0 52-42 86-105 95v38h-31v-35c-15 1-31 1-47 0v35h-31v-42l-48-2v-31l27-4V156l-27-4v-31l48-2V82h31v35c16-1 32-1 47 0V82h31v37zm-113 37v101h40c39 0 67-18 67-51 0-34-27-50-67-50h-40zm0 135v111h51c42 0 74-20 74-57 0-37-30-54-74-54h-51z"/>
+<path fill="#fff" opacity=".96" d="M116 368l52-52 26 26-52 52z"/>
+<path fill="#fff" opacity=".96" d="M151 403l90-90 25 25-90 90z"/>
+<path fill="#fff" opacity=".96" d="M225 425l71-71 25 25-71 71z"/>
+</svg>
