@@ -26,10 +26,10 @@ class Config:
                 return env
             return saved.get(name, default)
 
-        self.rpc_url = value("BCH_RPC_URL", "http://host.docker.internal:8332/")
-        self.rpc_user = value("BCH_RPC_USER", "poolrpc")
+        self.rpc_url = value("BCH_RPC_URL", "http://bchn:28332/")
+        self.rpc_user = value("BCH_RPC_USER", "bch")
         self.rpc_password = value("BCH_RPC_PASSWORD", "")
-        self.zmq_url = value("BCH_ZMQ_URL", "")
+        self.zmq_url = value("BCH_ZMQ_URL", "tcp://bchn:28334")
         self.payout_address = value("BCH_PAYOUT_ADDRESS", "")
         self.pool_id = value("POOL_ID", "BCH Solo Pool")
         self.stratum_host = value("STRATUM_HOST", "0.0.0.0")
