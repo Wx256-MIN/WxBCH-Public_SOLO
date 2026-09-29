@@ -181,13 +181,13 @@ body{margin:0;color:var(--ink);background:
  radial-gradient(650px 430px at 108% 10%,rgba(232,210,157,.22),transparent 62%),
  linear-gradient(180deg,#f7f5ee 0%,#f1efe7 100%);
  font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;min-height:100vh}
-body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.28;background-image:radial-gradient(rgba(31,72,52,.08) .7px,transparent .7px);background-size:13px 13px}
+body.dark{--bg:#07100c;--surface:#0f1b15;--surface2:#13231b;--ink:#edf7f0;--muted:#91a79a;--line:#243a2d;--green:#52c98b;--green2:#72dda4;--mint:#173b2a;--gold:#dcb85d;--shadow:0 14px 45px rgba(0,0,0,.28)}\nbody.dark .hero{background:linear-gradient(135deg,#10251a 0%,#172218 58%,#10271c 100%);border-color:#294333}\nbody.dark .heroStat,body.dark .metric{background:rgba(15,29,22,.88);border-color:#294033}\nbody.dark .card{background:rgba(15,26,20,.94);border-color:#263c30}\nbody.dark .kvItem,body.dark .workerMeta div,body.dark .worker{background:#101f17;border-color:#263c30}\nbody.dark .tableWrap,body.dark table{background:#0e1b15;border-color:#263c30}body.dark th{background:#13231b;color:#8da497}body.dark td{color:#d3e4d8;border-color:#203429}\nbody.dark .btn{background:#14251c;color:#e5f1e9;border-color:#2b4335}body.dark .toggle{background:#122219;color:#c5d8ca;border-color:#294033}body.dark .notice{background:#13271c;border-color:#294033}body.dark .sectionTag{background:#173022;color:#9bc5aa;border-color:#294333}body.dark .ring:after{background:#0f1b15}body.dark .event{border-color:#263c30}body.dark .eventIcon{background:#173022;border-color:#294333}body.dark .field input{background:#0d1913;color:#edf7f0;border-color:#2b4335}\nbody:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.28;background-image:radial-gradient(rgba(31,72,52,.08) .7px,transparent .7px);background-size:13px 13px}
 button{font:inherit;cursor:pointer}
 main{max-width:1320px;margin:auto;padding:22px clamp(12px,3vw,30px) 60px;position:relative}
 .topbar{display:flex;justify-content:space-between;align-items:center;gap:18px;margin-bottom:18px}
 .brand{display:flex;align-items:center;gap:13px}.logo{width:54px;height:54px;border-radius:18px;display:grid;place-items:center;background:linear-gradient(145deg,#377f60,#8bbf91);font-size:26px;font-weight:950;color:#fff;box-shadow:0 10px 28px rgba(47,143,104,.2);border:4px solid rgba(255,255,255,.72)}
 .brand h1{font-size:25px;line-height:1.05;margin:0;letter-spacing:-.04em;color:#17382b}.sub{font-size:12px;color:var(--muted);margin-top:5px}
-.topActions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.topActions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.themeToggle{display:inline-flex;align-items:center;gap:5px;padding:4px;border-radius:13px;background:rgba(255,255,255,.68);border:1px solid var(--line)}.themeToggle button{border:0;background:transparent;color:var(--muted);padding:7px 9px;border-radius:9px;font-size:12px;font-weight:800}.themeToggle button.active{background:#fff;color:var(--ink);box-shadow:0 2px 8px rgba(30,60,43,.1)}body.dark .themeToggle{background:#122219}.themeToggle button.active{background:#fff}
 .btn{border:1px solid var(--line);background:rgba(255,255,255,.72);color:var(--ink);padding:10px 14px;border-radius:14px;transition:.18s;box-shadow:0 4px 14px rgba(36,64,49,.05);font-weight:700}
 .btn:hover{transform:translateY(-1px);box-shadow:0 8px 20px rgba(36,64,49,.1)}.btn.primary{background:linear-gradient(135deg,#348f68,#58aa7e);color:#fff;border-color:transparent}.btn.blue{background:#e3eef3;color:#315d74}
 .pill{display:inline-flex;align-items:center;gap:7px;padding:8px 11px;border-radius:999px;background:var(--mint);border:1px solid #c9e3d3;color:#286b4f;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.07em}.dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 4px rgba(47,143,104,.12)}
@@ -229,7 +229,7 @@ main{max-width:1320px;margin:auto;padding:22px clamp(12px,3vw,30px) 60px;positio
 <body><main>
 <header class="topbar">
   <div class="brand"><div class="logo">₿</div><div><h1>BCH Solo Pool</h1><div class="sub">Self-hosted Bitcoin Cash solo mining · Command Center</div></div></div>
-  <div class="topActions"><span class="pill"><i class="dot"></i><span id="topStatus">Connecting</span></span><button class="btn" onclick="refreshData()">↻ Refresh</button><button class="btn primary" onclick="newJob()">⚡ New job</button></div>
+  <div class="topActions"><span class="pill"><i class="dot"></i><span id="topStatus">Connecting</span></span><div class="themeToggle" aria-label="Theme"><button id="lightBtn" onclick="setTheme('light')">☀ Light</button><button id="darkBtn" onclick="setTheme('dark')">☾ Dark</button></div><button class="btn" onclick="refreshData()">↻ Refresh</button><button class="btn primary" onclick="newJob()">⚡ New job</button></div>
 </header>
 
 <section id="setup" class="card setup">
@@ -394,8 +394,8 @@ async function refreshData(){
 }
 async function newJob(){try{const x=await api('/api/action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'refresh_job'})});if(!x.ok)throw Error(x.error||'Failed');await refreshData()}catch(e){alert('Could not create new job: '+e.message)}}
 async function copyStratum(){const s='stratum+tcp://'+location.hostname+':3334';try{await navigator.clipboard.writeText(s)}catch(e){prompt('Copy Stratum endpoint:',s)}}
-function setAuto(){if(timer)clearInterval(timer);const enabled=$('auto').checked;try{localStorage.setItem('bch_pool_auto_refresh',enabled?'1':'0')}catch(e){}timer=enabled?setInterval(refreshData,30000):null}
+function setTheme(theme){document.body.classList.toggle('dark',theme==='dark');try{localStorage.setItem('bch_pool_theme',theme)}catch(e){}updateThemeButtons()}\nfunction updateThemeButtons(){const dark=document.body.classList.contains('dark');$('lightBtn').classList.toggle('active',!dark);$('darkBtn').classList.toggle('active',dark)}\nfunction restoreTheme(){let theme='light';try{theme=localStorage.getItem('bch_pool_theme')||'light'}catch(e){}setTheme(theme)}\nfunction setAuto(){if(timer)clearInterval(timer);const enabled=$('auto').checked;try{localStorage.setItem('bch_pool_auto_refresh',enabled?'1':'0')}catch(e){}timer=enabled?setInterval(refreshData,30000):null}
 function restoreAuto(){let enabled=true;try{const saved=localStorage.getItem('bch_pool_auto_refresh');if(saved!==null)enabled=saved==='1'}catch(e){}$('auto').checked=enabled;if(enabled)timer=setInterval(refreshData,30000)}
-refreshData();restoreAuto();
+restoreTheme();refreshData();restoreAuto();
 </script>
 </body></html>"""
