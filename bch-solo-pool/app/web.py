@@ -279,6 +279,7 @@ main{max-width:1260px;margin:auto;padding:22px 18px 70px;position:relative}
     <div class="cardHead"><h2>Mining performance</h2><span class="sectionTag" id="syncBadge">LIVE</span></div>
     <div class="kv">
       <div class="kvItem"><span>Network difficulty</span><b id="difficulty">—</b></div>
+      <div class="kvItem"><span>Pool luck</span><b id="poolLuck">—</b></div>
       <div class="kvItem"><span>Network hashrate</span><b id="networkHashrate">—</b></div>
       <div class="kvItem"><span>Pool hashrate</span><b id="poolHashrate">—</b></div>
       <div class="kvItem"><span>Best share difficulty</span><b id="bestDiff">—</b></div>
@@ -383,7 +384,11 @@ async function refreshData(){
   const submittedWork=workers.reduce((a,w)=>a+Number(w.shares||0)*Number(w.difficulty||0),0);
   const networkDiff=Number(m.difficulty||0);
   const luckPct=networkDiff>0?(submittedWork/networkDiff*100):null;
-  $('difficulty').textContent=fmtDifficulty(m.difficulty);$('networkHashrate').textContent=fmtHash(m.networkhashps);$('poolHashrate').textContent=fmtHash(poolHash);
+  $('difficulty').textContent=fmtDifficulty(m.difficulty);
+  const estimatedWork=workers.reduce((a,w)=>a+(Number(w.shares||0)*Number(w.difficulty||0)),0);
+  const luck=m.difficulty>0?(estimatedWork/Number(m.difficulty)*100):0;
+  $('poolLuck').textContent=luck>=1000?luck.toFixed(0)+'%':luck.toFixed(2)+'%';
+  $('networkHashrate').textContent=fmtHash(m.networkhashps);$('poolHashrate').textContent=fmtHash(poolHash);
   $('luck').textContent=fmtLuck(luckPct);$('luckDetail').textContent=luckPct!=null?(submittedWork>0?'Submitted work: '+fmtDifficulty(submittedWork)+' diff':'No accepted work yet'):'Waiting for network difficulty';
   $('bestDiff').textContent=workers.length?Math.max(...workers.map(w=>Number(w.best_diff||0))).toFixed(6):'—';$('accepted').textContent=fmtNum(accepted);$('rejected').textContent=fmtNum(rejected)+' ('+(total?(rejected/total*100).toFixed(2):'0')+'%)';
   $('reward').textContent=x.coinbase_value?((Number(x.coinbase_value)/1e8).toFixed(8)+' BCH'):'—';$('jobTxs').textContent=fmtNum(x.tx_count);$('target').textContent=x.network_target?'0x'+x.network_target.slice(0,18)+'…':'—';
