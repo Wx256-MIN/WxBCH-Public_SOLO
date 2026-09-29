@@ -1,0 +1,39 @@
+version: "3.7"
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: bch-solo-pool_server_1
+      APP_PORT: 8080
+      PROXY_AUTH_ADD: "true"
+
+  server:
+    image: ghcr.io/Wx256-MIN/bch-solo-pool:v1.0.0
+    restart: on-failure
+    stop_grace_period: 1m
+    init: true
+    ports:
+      - "3334:3334"
+    volumes:
+      - ${APP_DATA_DIR}/data:/data
+    environment:
+      BCH_RPC_URL: "http://host.docker.internal:8332/"
+      BCH_RPC_USER: "poolrpc"
+      BCH_RPC_PASSWORD: "CHANGE_ME"
+      BCH_ZMQ_URL: "tcp://host.docker.internal:28332"
+      BCH_PAYOUT_ADDRESS: "bitcoincash:qYOUR_BCH_ADDRESS"
+      POOL_ID: "BCH Solo Pool"
+      STRATUM_HOST: "0.0.0.0"
+      STRATUM_PORT: "3334"
+      WEB_HOST: "0.0.0.0"
+      WEB_PORT: "8080"
+      START_DIFFICULTY: "1"
+      VARDIFF_ENABLED: "true"
+      VARDIFF_TARGET_SECONDS: "30"
+      VARDIFF_MIN: "0.001"
+      VARDIFF_MAX: "1000000000"
+      COINBASE_MESSAGE: "BCH Solo Pool"
+      DB_PATH: "/data/pool.sqlite3"
+      LOG_LEVEL: "INFO"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

@@ -1,0 +1,28 @@
+manifestVersion: 1
+id: bch-solo-pool
+category: finance
+name: BCH Solo Pool
+version: "1.0.0"
+tagline: Self-hosted Bitcoin Cash solo mining pool
+
+releaseNotes: >-
+  Initial release with Stratum V1, BCHN getblocktemplate/submitblock integration,
+  optional ZMQ block notifications, vardiff, share accounting and dashboard.
+
+description: >-
+  Self-hosted Bitcoin Cash solo mining pool for BCHN and SHA-256 ASIC miners.
+  Provides a Stratum V1 endpoint, BCHN block-template integration, optional ZMQ
+  new-block notifications, share accounting, block-candidate submission and a web dashboard.
+
+developer: BCH Solo Pool Community
+website: https://github.com/Wx256-MIN/bch-solo-pool
+repo: https://github.com/Wx256-MIN/bch-solo-pool
+support: https://github.com/Wx256-MIN/bch-solo-pool/issues
+
+submitter: Wx256-MIN
+submission: https://github.com/getumbrel/umbrel-apps
+
+dependencies: []
+port: 8080
+icon: ""
+gallery: []
