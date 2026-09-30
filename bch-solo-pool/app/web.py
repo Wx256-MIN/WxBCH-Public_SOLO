@@ -170,11 +170,15 @@ class Web:
                             outer.cfg.vardiff_target_seconds = target
                             outer.cfg.vardiff_min = minimum
                             outer.cfg.vardiff_max = maximum
-                            # If the new minimum is above a connected miner's
-                            # current target, raise it immediately. Otherwise
-                            # let vardiff converge naturally.
+                            # When Vardiff is disabled, put connected miners at
+                            # the configured fixed start difficulty. When it is
+                            # enabled, preserve their current difficulty unless
+                            # it violates the new bounds.
                             for miner in list(outer.pool.miners):
-                                new_difficulty = max(minimum, min(maximum, miner.difficulty))
+                                if not enabled:
+                                    new_difficulty = start
+                                else:
+                                    new_difficulty = max(minimum, min(maximum, miner.difficulty))
                                 if abs(new_difficulty - miner.difficulty) > 1e-12:
                                     miner.difficulty = new_difficulty
                                     outer.pool.db.touch_worker(miner.worker, new_difficulty)
