@@ -34,6 +34,14 @@ def reverse_32bit_words(data: bytes) -> bytes:
         data[i:i + 4] for i in range(len(data) - 4, -1, -4)
     )
 
+def apply_version_rolling(base_version: int, version_mask: int, version_bits: int) -> int:
+    """Apply BIP310 rolling bits without changing protected version bits."""
+    mask = int(version_mask) & 0xffffffff
+    base = int(base_version) & 0xffffffff
+    bits = int(version_bits) & 0xffffffff
+    return ((base & ~mask) | (bits & mask)) & 0xffffffff
+
+
 def encode_height(height):
     n = int(height)
     b = bytearray()
@@ -460,23 +468,14 @@ class Pool:
         self.db.set_worker_connected(worker, connected)
 
     async def cleanup_inactive_workers(self):
-        """Disconnect authorized miners that have produced no share for 30 minutes."""
-        now = time.time()
-        timeout = 30 * 60
-        for miner in list(self.miners):
-            if not miner.authorized:
-                continue
-            reference = miner.last_share or miner.authorized_at
-            if reference and now - reference >= timeout:
-                log.info("removing inactive worker=%s after 30 minutes without a share", miner.worker)
-                self.db.set_worker_connected(miner.worker, False)
-                self.db.event("disconnect", miner.worker, "removed after 30 minutes without a submitted share")
-                self.miners.discard(miner)
-                try:
-                    miner.writer.close()
-                    await miner.writer.wait_closed()
-                except Exception:
-                    pass
+        """Legacy no-op kept for compatibility with older callers.
+        
+        A connected miner is not removed merely because it has not found a
+        share yet. High-difficulty workers can legitimately go long periods
+        without a share; the TCP connection itself is the authoritative
+        liveness signal.
+        """
+        return
 
     async def refresh_job(self, reason="poll", only_if_new_block=False):
         try:
@@ -578,14 +577,10 @@ class Pool:
             return False, [22, "Duplicate share", None]
 
         cb = self.job.coinbase(miner.ex1, ex2)
-        if miner.version_rolling:
-            # BIP310: replace only the negotiated rolling bits.
-            header_version = (
-                (self.job.version & ~miner.version_mask)
-                | (version_bits & miner.version_mask)
-            )
-        else:
-            header_version = self.job.version
+        header_version = (
+            apply_version_rolling(self.job.version, miner.version_mask, version_bits)
+            if miner.version_rolling else self.job.version
+        )
         header = self.job.header(cb, nonce, ntime, header_version)
         digest = sha256d(header)
 
