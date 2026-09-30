@@ -58,14 +58,19 @@ class Web:
                     return
 
                 if path == "/api/status":
-                    info, mining = {}, {}
+                    info, mining, network = {}, {}, {}
                     if outer.rpc is not None:
                         try:
                             info = outer.rpc.get_blockchain_info()
                             mining = outer.rpc.get_mining_info()
+                            network = outer.rpc.get_network_info()
                         except Exception as exc:
                             info = {"error": str(exc)}
                     workers, blocks, events = outer.db.snapshot()
+                    authorized_miners = (
+                        sum(1 for miner in outer.pool.miners if miner.authorized)
+                        if outer.pool is not None else 0
+                    )
                     job = outer.pool.job if outer.pool is not None else None
                     obj = {
                         "setup_required": not outer.cfg.configured,
@@ -79,12 +84,13 @@ class Web:
                         "job_created": job.created if job else None,
                         "tx_count": len(job.tx_hex) if job else 0,
                         "coinbase_value": job.coinbase_value if job else None,
-                        "miners_connected": len(outer.pool.miners) if outer.pool is not None else 0,
+                        "miners_connected": authorized_miners,
                         "workers": workers,
                         "blocks": blocks,
                         "events": events,
                         "node": info,
                         "mining": mining,
+                        "network": network,
                     }
                     self._send(200, json.dumps(obj))
                     return
@@ -622,7 +628,7 @@ function renderWorkers(workers){
 }
 async function refreshData(){
  try{
-  await setupState();const x=await api('/api/status');lastData=x;const n=x.node||{},m=x.mining||{},workers=x.workers||[];
+  await setupState();const x=await api('/api/status');lastData=x;const n=x.node||{},m=x.mining||{},net=x.network||{},workers=x.workers||[];
   const online=n.blocks!=null, syncing=!!n.initialblockdownload;
   const poolHash=workers.reduce((a,w)=>a+Number(w.hashrate||0),0);
   const accepted=workers.reduce((a,w)=>a+Number(w.shares||0),0),rejected=workers.reduce((a,w)=>a+Number(w.rejected||0),0),total=accepted+rejected;
@@ -630,7 +636,7 @@ async function refreshData(){
   $('topStatus').textContent=online?(syncing?'Node syncing':'Pool online'):'Node offline';
   $('statusText') && ($('statusText').textContent=online?(syncing?'Node syncing':'Pool online'):'Node offline');
   $('node').textContent=online?(syncing?'Syncing':'Online'):'Offline';$('chain').textContent=n.chain||'BCHN';
-  $('height').textContent=fmtNum(x.height);$('miners').textContent=fmtNum(x.miners_connected);$('peers').textContent=fmtNum(n.connections);$('job').textContent=x.job_id||'—';$('jobAge').textContent=x.job_created?'Job '+ago(x.job_created):'Job age unavailable';$('txs').textContent=fmtNum(x.tx_count)+' transactions';
+  $('height').textContent=fmtNum(x.height);$('miners').textContent=fmtNum(x.miners_connected);$('peers').textContent=fmtNum(net.connections);$('job').textContent=x.job_id||'—';$('jobAge').textContent=x.job_created?'Job '+ago(x.job_created):'Job age unavailable';$('txs').textContent=fmtNum(x.tx_count)+' transactions';
   $('heroHash').textContent=fmtHash(poolHash);$('heroMiners').textContent=fmtNum(x.miners_connected)+' connected';$('heroJob').textContent=x.job_id||'—';
   $('stratum').textContent='stratum+tcp://'+location.hostname+':3334';
   $('difficulty').textContent=fmtDifficulty(m.difficulty);
@@ -640,10 +646,10 @@ async function refreshData(){
   renderWorkers(workers);
   $('blocks').innerHTML=(x.blocks||[]).length?(x.blocks||[]).map(b=>'<tr><td>'+fmtTime(b.time)+'</td><td>'+esc(b.height)+'</td><td>'+esc(b.worker)+'</td><td><code>'+esc((b.hash||'').slice(0,18))+'…</code></td><td><span class="badge '+(String(b.result).toLowerCase()==='none'?'':'bad')+'">'+esc(b.result||'submitted')+'</span></td></tr>').join(''):'<tr><td colspan="5" class="empty">No block submissions yet.</td></tr>';
   $('events').innerHTML=(x.events||[]).slice(0,12).map(e=>'<div class="event"><div class="eventIcon">'+(String(e.kind).toLowerCase().includes('block')?'◆':'•')+'</div><div class="eventText"><b>'+esc(e.kind)+'</b> '+esc(e.detail||'')+'<div class="eventTime">'+esc(e.worker||'pool')+' · '+fmtTime(e.time)+'</div></div></div>').join('')||'<div class="empty">No events yet.</div>';
-  $('nodeChain').textContent=n.chain||'—';$('progress').textContent=n.verificationprogress!=null?(Number(n.verificationprogress)*100).toFixed(2)+'%':'—';$('headers').textContent=fmtNum(n.headers);$('connections').textContent=fmtNum(n.connections);$('poolStatus').textContent=online?'Running':'Node unavailable';
+  $('nodeChain').textContent=n.chain||'—';$('progress').textContent=n.verificationprogress!=null?(Number(n.verificationprogress)*100).toFixed(2)+'%':'—';$('headers').textContent=fmtNum(n.headers);$('connections').textContent=fmtNum(net.connections);$('poolStatus').textContent=online?'Running':'Node unavailable';
   $('syncBadge').textContent=syncing?'SYNCING':'LIVE';$('nodeState').textContent=syncing?'SYNCING':'BCHN';
   $('progressPct').textContent=progress.toFixed(1)+'%';$('ring').style.setProperty('--progress',progress+'%');$('syncTitle').textContent=online?(syncing?'BCHN is synchronizing':'BCHN is fully available'):'BCHN unavailable';
-  $('syncDetail').textContent=online?('Height '+fmtNum(n.blocks)+' · '+fmtNum(n.headers)+' headers · '+fmtNum(n.connections)+' peer connections'): 'Waiting for live BCHN blockchain information.';
+  $('syncDetail').textContent=online?('Height '+fmtNum(n.blocks)+' · '+fmtNum(n.headers)+' headers · '+fmtNum(net.connections)+' peer connections'): 'Waiting for live BCHN blockchain information.';
  }catch(e){$('topStatus').textContent='Connection error';$('node').textContent='Offline';$('syncTitle').textContent='Connection error'}
 }
 async function newJob(){try{const x=await api('/api/action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'refresh_job'})});if(!x.ok)throw Error(x.error||'Failed');await refreshData()}catch(e){alert('Could not create new job: '+e.message)}}
