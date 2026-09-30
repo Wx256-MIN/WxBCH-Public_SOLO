@@ -370,12 +370,17 @@ class Miner:
                 target_hex = str(params[0]).strip().lower()
                 if target_hex.startswith("0x"):
                     target_hex = target_hex[2:]
+                if not target_hex or len(target_hex) > 64:
+                    raise ValueError
                 target = int(target_hex, 16)
                 if target <= 0 or target > (1 << 256) - 1:
                     raise ValueError
                 suggested = target_to_difficulty(target)
             except (IndexError, TypeError, ValueError):
-                suggested = 0.0
+                if mid is not None:
+                    await self.send({"id": mid, "result": False,
+                                     "error": [20, "Invalid target", None]})
+                return
             if suggested > 0 and self.shares == 0 and self.pool.cfg.vardiff_enabled:
                 self.difficulty = max(
                     self.pool.cfg.vardiff_min,
