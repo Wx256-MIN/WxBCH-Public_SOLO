@@ -27,10 +27,12 @@ def push_data(data: bytes) -> bytes:
 
 
 def reverse_32bit_words(data: bytes) -> bytes:
-    """Swap byte order inside each 4-byte word (Stratum prevhash format)."""
+    """Reverse the order of 32-bit words without changing each word."""
     if len(data) % 4:
         raise ValueError("32-bit word reversal requires a multiple of 4 bytes")
-    return b"".join(data[i:i + 4][::-1] for i in range(0, len(data), 4))
+    return b"".join(
+        data[i:i + 4] for i in range(len(data) - 4, -1, -4)
+    )
 
 def encode_height(height):
     n = int(height)
@@ -114,7 +116,7 @@ class Job:
         version = self.version if version is None else int(version)
         return (
             struct.pack("<I", version) +
-            reverse_32bit_words(bytes.fromhex(self.prevhash)) +
+            bytes.fromhex(self.prevhash)[::-1] +
             self.merkle_for_coinbase(coinbase) +
             struct.pack("<I", ntime) +
             bytes.fromhex(self.bits)[::-1] +
