@@ -542,7 +542,7 @@ async function saveSetup(){
 function renderWorkers(workers){
  $('workerCount').textContent=workers.length+' worker'+(workers.length===1?'':'s');
  if(!workers.length){$('workers').innerHTML='<div class="empty">No miners connected yet.</div>';return}
- $('workers').innerHTML=workers.map(w=>'<div class="worker"><div class="workerTop"><div class="workerName">'+esc(w.worker)+'</div><div class="workerHash">'+fmtHash(w.hashrate||0)+'</div></div><div class="workerMeta"><div><span>Accepted</span><b>'+fmtNum(w.shares)+'</b></div><div><span>Rejected</span><b>'+fmtNum(w.rejected)+'</b></div><div><span>Best diff</span><b>'+Number(w.best_diff||0).toFixed(4)+'</b></div></div><div class="muted" style="font-size:9px;margin-top:8px">Last seen · '+ago(w.last_seen)+'</div></div>').join('')
+ $('workers').innerHTML=workers.map(w=>'<div class="worker"><div class="workerTop"><div class="workerName">'+esc(w.worker)+'</div><div class="workerHash">'+fmtHash(w.hashrate||0)+'</div></div><div class="workerMeta"><div><span>Accepted</span><b>'+fmtNum(w.shares)+'</b></div><div><span>Rejected</span><b>'+fmtNum(w.rejected)+'</b></div><div><span>Share diff</span><b>'+fmtDifficulty(w.difficulty)+'</b></div><div><span>Best diff</span><b>'+Number(w.best_diff||0).toFixed(4)+'</b></div></div><div class="muted" style="font-size:9px;margin-top:8px">Last seen · '+ago(w.last_seen)+'</div></div>').join('')
 }
 async function refreshData(){
  try{
