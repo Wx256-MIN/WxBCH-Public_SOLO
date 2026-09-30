@@ -659,10 +659,6 @@ body{overflow-x:hidden}
     <div class="notice" style="margin-top:12px">New jobs are generated when BCHN reports a new block through ZMQ or when you press <b>New job</b>. Dashboard auto-refresh is browser-only and does not restart mining.</div>
    </section>
 
-   <section class="card">
-    <div class="cardHead"><h2>Recent activity</h2><span class="muted">Latest events</span></div>
-    <div id="events"><div class="empty">No events yet.</div></div>
-   </section>
   </div>
  </div>
  <div class="footer">BCH Solo Pool · BCHN powered · Stratum :3334</div>
