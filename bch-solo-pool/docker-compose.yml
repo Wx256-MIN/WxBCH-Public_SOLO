@@ -31,7 +31,7 @@ services:
       VARDIFF_ENABLED: "true"
       VARDIFF_TARGET_SECONDS: "30"
       VARDIFF_MIN: "0.001"
-      VARDIFF_MAX: "1000000000"
+      VARDIFF_MAX: "65536"
       COINBASE_MESSAGE: "BCH Solo Pool"
       DB_PATH: "/data/pool.sqlite3"
       CONFIG_PATH: "/data/config.json"
