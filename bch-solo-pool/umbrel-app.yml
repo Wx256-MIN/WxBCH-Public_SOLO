@@ -2,11 +2,11 @@ manifestVersion: 1
 id: bch-solo-pool
 category: finance
 name: BCH Solo Pool
-version: "1.5.1"
+version: "1.5.2"
 tagline: Self-hosted Bitcoin Cash solo mining pool
 
 releaseNotes: >-
-  Adds automatic removal of workers that submit no share for 30 minutes and shows live Stratum-estimated worker and pool hashrate. Worker cards show only worker names and formatted share difficulty. Adds persistent Start/Minimum difficulty controls and keeps vardiff bounded against runaway increases. Pins share difficulty to the job that was actually issued, preventing vardiff updates from rejecting valid in-flight shares. Tracks effective worker and pool hashrate from accepted share work and shows the active share difficulty per worker. Connects directly to the Umbrel Bitcoin Cash Node (BCHN) app using its exported
+  Adds configurable Difficulty (Vardiff) with enable/disable, target share time, start, minimum, and maximum difficulty controls. Also includes automatic removal of workers that submit no share for 30 minutes and live Stratum-estimated worker and pool hashrate. Worker cards show only worker names and formatted share difficulty. Adds persistent Start/Minimum difficulty controls and keeps vardiff bounded against runaway increases. Pins share difficulty to the job that was actually issued, preventing vardiff updates from rejecting valid in-flight shares. Tracks effective worker and pool hashrate from accepted share work and shows the active share difficulty per worker. Connects directly to the Umbrel Bitcoin Cash Node (BCHN) app using its exported
   RPC and ZMQ connection details. Adds BIP310 Stratum version-rolling support for Bitaxe/AxeOS and Avalon firmware. Fixes Stratum mining.notify version/ntime encoding so miners submit the same uint32 timestamp advertised by the pool. Corrects Stratum prevhash word ordering, miner difficulty negotiation, and the default share difficulty (1000) to match common ASIC suggestions. Fixes the setup form focus behavior and adds a
   modern mobile-friendly dashboard with live node, mining, worker, block, event,
   and job controls. Uses bitcoind:8332 for RPC and automatically loads the Umbrel
