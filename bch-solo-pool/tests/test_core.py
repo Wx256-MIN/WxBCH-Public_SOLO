@@ -51,6 +51,29 @@ class CoreTests(unittest.TestCase):
         self.assertEqual(params[5], "20000002")
         self.assertEqual(params[7], "6553f100")
 
+    def test_stratum_prevhash_uses_word_reversal(self):
+        t = {
+            "height": 900000,
+            "previousblockhash": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+            "version": 2,
+            "bits": "1d00ffff",
+            "curtime": 1700000000,
+            "mintime": 1699990000,
+            "coinbasevalue": 1000,
+            "transactions": [],
+        }
+        script = decode_cashaddr("bitcoincash:qpm2qsznhks23z7629mms6s4cwef74vcwvy22gdx6a")
+        j = Job(t, script, "test")
+        self.assertEqual(
+            j.notify()[1],
+            "1c1d1e1f18191a1b14151617101112130c0d0e0f08090a0b0405060700010203",
+        )
+        cb = j.coinbase(b"\x01\x02\x03\x04", b"\x05\x06\x07\x08")
+        self.assertEqual(
+            j.header(cb, 0)[4:36],
+            bytes.fromhex(t["previousblockhash"])[::-1],
+        )
+
     def test_merkle_one(self):
         h = sha256d(b"abc")
         self.assertEqual(merkle_root([h]), h)
