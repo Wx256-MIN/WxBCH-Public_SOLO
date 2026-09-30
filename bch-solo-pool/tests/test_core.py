@@ -19,8 +19,11 @@ class CoreTests(unittest.TestCase):
         self.assertEqual(encode_compact_target("1d00ffff"), DIFF1_TARGET)
 
     def test_target_endianness(self):
-        self.assertTrue(hash_meets_target(bytes.fromhex("00000000ffff") + b"\x00" * 26, DIFF1_TARGET))
-        self.assertFalse(hash_meets_target(bytes.fromhex("ffff0000") + b"\x00" * 28, DIFF1_TARGET))
+        # SHA-256d returns the raw digest in reverse byte order relative to
+        # the human-readable block hash. PoW target comparison is little-endian.
+        self.assertTrue(hash_meets_target(b"\x00" * 4 + bytes.fromhex("ffff") + b"\x00" * 26, DIFF1_TARGET))
+        self.assertTrue(hash_meets_target(b"\x00" * 32, DIFF1_TARGET))
+        self.assertFalse(hash_meets_target(b"\x00" * 26 + bytes.fromhex("ffff") + b"\xff" * 4, DIFF1_TARGET))
 
     def test_job_header_and_coinbase(self):
         t = {
