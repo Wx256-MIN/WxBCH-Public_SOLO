@@ -14,6 +14,11 @@ class DB:
             self.conn.execute("PRAGMA busy_timeout=10000")
         self._init()
 
+    def _migrate(self):
+        cols = {row[1] for row in self.conn.execute("PRAGMA table_info(workers)")}
+        if "connected" not in cols:
+            self.conn.execute("ALTER TABLE workers ADD COLUMN connected INTEGER NOT NULL DEFAULT 0")
+
     def _init(self):
         with self.lock, self.conn:
             self.conn.executescript("""
@@ -25,7 +30,8 @@ class DB:
               rejected INTEGER NOT NULL DEFAULT 0,
               hashrate REAL NOT NULL DEFAULT 0,
               difficulty REAL NOT NULL DEFAULT 1,
-              best_diff REAL NOT NULL DEFAULT 0
+              best_diff REAL NOT NULL DEFAULT 0,
+              connected INTEGER NOT NULL DEFAULT 0
             );
             CREATE TABLE IF NOT EXISTS blocks(
               id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -47,16 +53,34 @@ class DB:
             CREATE INDEX IF NOT EXISTS idx_blocks_time ON blocks(time DESC);
             CREATE INDEX IF NOT EXISTS idx_events_time ON events(time DESC);
             """)
+            self._migrate()
 
-    def touch_worker(self, worker, difficulty):
+    def touch_worker(self, worker, difficulty, connected=None):
         now = time.time()
         with self.lock, self.conn:
-            self.conn.execute("""
-              INSERT INTO workers(worker,first_seen,last_seen,difficulty)
-              VALUES(?,?,?,?)
-              ON CONFLICT(worker) DO UPDATE SET
-                last_seen=excluded.last_seen,difficulty=excluded.difficulty
-            """, (worker, now, now, difficulty))
+            if connected is None:
+                self.conn.execute("""
+                  INSERT INTO workers(worker,first_seen,last_seen,difficulty)
+                  VALUES(?,?,?,?)
+                  ON CONFLICT(worker) DO UPDATE SET
+                    last_seen=excluded.last_seen,difficulty=excluded.difficulty
+                """, (worker, now, now, difficulty))
+            else:
+                self.conn.execute("""
+                  INSERT INTO workers(worker,first_seen,last_seen,difficulty,connected)
+                  VALUES(?,?,?,?,?)
+                  ON CONFLICT(worker) DO UPDATE SET
+                    last_seen=excluded.last_seen,difficulty=excluded.difficulty,
+                    connected=excluded.connected
+                """, (worker, now, now, difficulty, int(bool(connected))))
+
+    def set_worker_connected(self, worker, connected):
+        now = time.time()
+        with self.lock, self.conn:
+            self.conn.execute(
+                "UPDATE workers SET connected=?, last_seen=? WHERE worker=?",
+                (int(bool(connected)), now, worker)
+            )
 
     def share(self, worker, accepted, best_diff=0.0, hashrate=0.0, difficulty=1.0):
         now = time.time()
@@ -93,7 +117,7 @@ class DB:
     def snapshot(self):
         with self.lock:
             workers = [dict(x) for x in self.conn.execute(
-                "SELECT * FROM workers ORDER BY last_seen DESC"
+                "SELECT * FROM workers WHERE connected=1 ORDER BY last_seen DESC"
             )]
             blocks = [dict(x) for x in self.conn.execute(
                 "SELECT * FROM blocks ORDER BY id DESC LIMIT 20"
