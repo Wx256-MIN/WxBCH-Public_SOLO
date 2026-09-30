@@ -46,9 +46,9 @@ class Config:
         self.web_port = int(value("WEB_PORT", "8080"))
         self.start_difficulty = float(setting("START_DIFFICULTY", "1000"))
         self.vardiff_enabled = _bool_env("VARDIFF_ENABLED", bool(saved.get("VARDIFF_ENABLED", True)))
-        self.vardiff_target_seconds = float(value("VARDIFF_TARGET_SECONDS", "30"))
+        self.vardiff_target_seconds = float(setting("VARDIFF_TARGET_SECONDS", "30"))
         self.vardiff_min = float(setting("VARDIFF_MIN", "0.001"))
-        self.vardiff_max = float(value("VARDIFF_MAX", "65536"))
+        self.vardiff_max = float(setting("VARDIFF_MAX", "65536"))
         if self.vardiff_min <= 0:
             self.vardiff_min = 0.001
         if self.vardiff_max < self.vardiff_min:
