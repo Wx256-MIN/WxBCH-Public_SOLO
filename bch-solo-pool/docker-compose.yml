@@ -14,7 +14,11 @@ services:
     stop_grace_period: 1m
     init: true
     ports:
-      - "3334:3334"
+      # Public LAN Stratum V1 endpoint for ASIC miners.
+      # Explicitly publish TCP on all host interfaces; app_proxy only handles the web UI.
+      - "0.0.0.0:3334:3334/tcp"
+    expose:
+      - "3334"
     volumes:
       - ${APP_DATA_DIR}/data:/data
     environment:
