@@ -26,7 +26,10 @@ class Web:
                 self.send_header("Content-Length", str(len(data)))
                 self.send_header("Cache-Control", "no-store")
                 self.end_headers()
-                self.wfile.write(data)
+                try:
+                    self.wfile.write(data)
+                except (BrokenPipeError, ConnectionResetError):
+                    pass
 
             def _json_body(self):
                 length = int(self.headers.get("Content-Length", "0"))
@@ -40,7 +43,17 @@ class Web:
                 if path == "/health":
                     self._send(200, json.dumps({
                         "ok": True,
-                        "configured": bool(outer.cfg and outer.cfg.configured)
+                        "configured": bool(outer.cfg and outer.cfg.configured),
+                        "pool": bool(outer.pool is not None),
+                    }))
+                    return
+
+                if path == "/ready":
+                    ready = bool(outer.cfg and outer.cfg.configured and outer.pool is not None and outer.pool.job is not None)
+                    self._send(200 if ready else 503, json.dumps({
+                        "ok": ready,
+                        "configured": bool(outer.cfg and outer.cfg.configured),
+                        "job": bool(outer.pool and outer.pool.job),
                     }))
                     return
 
@@ -287,11 +300,32 @@ class Web:
             def log_message(self, *_):
                 return
 
-        self.server = ThreadingHTTPServer(
+        class StableHTTPServer(ThreadingHTTPServer):
+            allow_reuse_address = True
+            daemon_threads = True
+
+        self.server = StableHTTPServer(
             (self.cfg.web_host, self.cfg.web_port), Handler
         )
-        threading.Thread(target=self.server.serve_forever, daemon=True).start()
+        threading.Thread(
+            target=self.server.serve_forever,
+            kwargs={"poll_interval": 0.5},
+            name="web-server",
+            daemon=True,
+        ).start()
         return self.server
+
+    def stop(self):
+        if self.server is not None:
+            try:
+                self.server.shutdown()
+            except Exception:
+                pass
+            try:
+                self.server.server_close()
+            except Exception:
+                pass
+            self.server = None
 
     def html(self):
         return """<!doctype html>
@@ -739,7 +773,7 @@ async function refreshData(){
   $('difficulty').textContent=fmtDifficulty(m.difficulty);
     $('vardiffStatus').textContent=x.vardiff_enabled===false?'OFF':('ON · '+fmtNum(x.vardiff_target_seconds)+'s');
     $('networkHashrate').textContent=fmtHash(m.networkhashps);$('poolHashrate').textContent=fmtHash(poolHash);
-  $('bestDiff').textContent=workers.length?Math.max(...workers.map(w=>Number(w.best_diff||0))).toFixed(6):'—';$('accepted').textContent=fmtNum(accepted);$('rejected').textContent=fmtNum(rejected)+' ('+(total?(rejected/total*100).toFixed(2):'0')+'%)';
+  $('bestDiff').textContent=workers.length?fmtDifficulty(Math.max(...workers.map(w=>Number(w.best_diff||0)) )):'—';$('accepted').textContent=fmtNum(accepted);$('rejected').textContent=fmtNum(rejected)+' ('+(total?(rejected/total*100).toFixed(2):'0')+'%)';
   $('reward').textContent=x.coinbase_value?((Number(x.coinbase_value)/1e8).toFixed(8)+' BCH'):'—';$('jobTxs').textContent=fmtNum(x.tx_count);$('target').textContent=x.network_target?'0x'+x.network_target.slice(0,18)+'…':'—';
   renderWorkers(workers);
   $('blocks').innerHTML=(x.blocks||[]).length?(x.blocks||[]).map(b=>'<tr><td>'+fmtTime(b.time)+'</td><td>'+esc(b.height)+'</td><td>'+esc(b.worker)+'</td><td><code>'+esc((b.hash||'').slice(0,18))+'…</code></td><td><span class="badge '+(String(b.result).toLowerCase()==='none'?'':'bad')+'">'+esc(b.result||'submitted')+'</span></td></tr>').join(''):'<tr><td colspan="5" class="empty">No block submissions yet.</td></tr>';
