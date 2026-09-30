@@ -372,18 +372,32 @@ class Pool:
                 except Exception:
                     pass
 
-    async def refresh_job(self, reason="poll"):
+    async def refresh_job(self, reason="poll", only_if_new_block=False):
         try:
-            template = await asyncio.to_thread(self.rpc.get_template)
+            # Serialize template fetches so ZMQ and fallback recovery cannot
+            # race each other and create duplicate jobs.
             async with self.job_lock:
+                template = await asyncio.to_thread(self.rpc.get_template)
+
+                if only_if_new_block and self.job is not None:
+                    same_tip = (
+                        int(template.get("height", -1)) == self.job.height
+                        and str(template.get("previousblockhash", "")) == self.job.prevhash
+                    )
+                    if same_tip:
+                        return False
+
                 self.job = Job(template, self.payout_script, self.cfg.coinbase_message)
+
             log.info(
                 "new job height=%s job=%s reason=%s txs=%s",
                 self.job.height, self.job.job_id, reason, len(self.job.tx_hex)
             )
             await self.broadcast_job(clean=True)
+            return True
         except Exception:
             log.exception("template refresh failed")
+            return False
 
     async def broadcast_job(self, clean=False):
         if not self.job:
