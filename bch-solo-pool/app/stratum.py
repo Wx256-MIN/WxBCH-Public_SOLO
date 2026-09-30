@@ -514,6 +514,12 @@ class Pool:
                 await miner.send(msg)
             except Exception:
                 self.miners.discard(miner)
+                if miner.authorized and miner.worker != "unknown":
+                    self.update_worker_connection(miner.worker)
+                try:
+                    miner.writer.close()
+                except Exception:
+                    pass
 
     def remember_job_for_miner(self, miner):
         """Pin the share difficulty to the job the miner was actually given."""
