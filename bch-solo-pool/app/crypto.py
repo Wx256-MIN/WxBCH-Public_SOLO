@@ -41,8 +41,10 @@ def difficulty_to_target(diff: float) -> int:
 
 
 def hash_meets_target(digest: bytes, target: int) -> bool:
-    # SHA-256's digest bytes represent the hash as a big-endian integer.
-    return int.from_bytes(digest, "big") <= target
+    # Bitcoin-family PoW compares the uint256 hash in internal
+    # little-endian byte order against the target.
+    # SHA-256d returns the 32-byte digest in the opposite display order.
+    return int.from_bytes(digest, "little") <= target
 
 
 def merkle_root(tx_hashes_internal):
