@@ -196,6 +196,11 @@ class Miner:
         self.send_lock = asyncio.Lock()
         self.closed = False
         self.handshake_timeout = 30.0
+        self.activity_timeout = 900.0
+        self.last_activity = time.monotonic()
+        self.submit_window_start = time.monotonic()
+        self.submit_window_count = 0
+        self.max_submits_per_second = 20
 
     async def send(self, obj):
         if self.closed:
@@ -205,7 +210,7 @@ class Miner:
             if self.closed:
                 raise ConnectionError("miner connection is closed")
             self.writer.write(data)
-            await self.writer.drain()
+            await asyncio.wait_for(self.writer.drain(), timeout=10.0)
 
     async def close(self):
         if self.closed:
@@ -229,9 +234,14 @@ class Miner:
                         break
                     line = await asyncio.wait_for(self.reader.readline(), remaining)
                 else:
-                    line = await self.reader.readline()
+                    try:
+                        line = await asyncio.wait_for(self.reader.readline(), self.activity_timeout)
+                    except asyncio.TimeoutError:
+                        log.warning("miner idle timeout: %s", self.worker)
+                        break
                 if not line:
                     break
+                self.last_activity = time.monotonic()
                 if len(line) > 65536:
                     log.warning("miner sent oversized Stratum message")
                     break
