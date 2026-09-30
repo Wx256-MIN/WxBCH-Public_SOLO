@@ -595,7 +595,7 @@ class Pool:
         job = self.jobs.get(job_id)
         if job is None:
             return False, [21, "Stale share", None]
-        if job.prevhash != self.job.prevhash or job.height != job.height:
+        if job.prevhash != self.job.prevhash or job.height != self.job.height:
             return False, [21, "Stale share", None]
 
         try:
@@ -707,13 +707,13 @@ class Pool:
             block_hex = job.block_hex(cb, nonce, ntime, header_version)
             result = await asyncio.to_thread(self.rpc.submit_block, block_hex)
             h = digest[::-1].hex()
-            self.db.block(self.job.height, self.job.job_id, miner.worker, h, str(result))
-            self.db.event("block", miner.worker, f"height={self.job.height} hash={h} result={result}")
+            self.db.block(job.height, job.job_id, miner.worker, h, str(result))
+            self.db.event("block", miner.worker, f"height={job.height} hash={h} result={result}")
             log.warning(
                 "BLOCK CANDIDATE: height=%s worker=%s hash=%s submit=%s",
-                self.job.height, miner.worker, h, result
+                job.height, miner.worker, h, result
             )
-            if result is None:
+            if result is None or str(result).lower() == "duplicate":
                 await asyncio.sleep(0.25)
                 await self.refresh_job("block-submit", only_if_new_block=True)
 
