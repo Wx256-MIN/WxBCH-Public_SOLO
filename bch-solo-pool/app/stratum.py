@@ -266,14 +266,14 @@ class Miner:
                 suggested = float(params[0])
             except (IndexError, TypeError, ValueError):
                 suggested = 0.0
-            if suggested > 0 and self.shares == 0:
+            if suggested > 0 and self.shares == 0 and self.pool.cfg.vardiff_enabled:
                 self.difficulty = max(
                     self.pool.cfg.vardiff_min,
                     min(self.pool.cfg.vardiff_max, suggested)
                 )
                 self.pool.db.touch_worker(self.worker, self.difficulty)
             await self.send({"id": mid, "result": True, "error": None})
-            if suggested > 0 and self.shares == 0:
+            if suggested > 0 and self.shares == 0 and self.pool.cfg.vardiff_enabled:
                 await self.send({
                     "id": None,
                     "method": "mining.set_difficulty",
