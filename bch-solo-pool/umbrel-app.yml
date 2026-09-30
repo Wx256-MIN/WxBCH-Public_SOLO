@@ -2,7 +2,7 @@ manifestVersion: 1
 id: bch-solo-pool
 category: finance
 name: BCH Solo Pool
-version: "1.3.8"
+version: "1.3.9"
 tagline: Self-hosted Bitcoin Cash solo mining pool
 
 releaseNotes: >-
@@ -31,5 +31,5 @@ submission: https://github.com/getumbrel/umbrel-apps
 dependencies:
   - bitcoin-cash-node
 port: 3567
-icon: https://cdn.jsdelivr.net/gh/Wx256-MIN/WxBCH-SOLO@bc23d30cf1efe7e79d428e1d3b270da64bfd5762/bch-solo-pool/icon.svg
+icon: https://cdn.jsdelivr.net/gh/Wx256-MIN/WxBCH-SOLO@ecbcf979ed51a03e6eb2b773df69d2db3df50623/bch-solo-pool/icon.jpg
 gallery: []
