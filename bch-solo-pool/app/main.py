@@ -29,7 +29,7 @@ async def stratum_server(pool, cfg):
                 pass
             log.info("miner disconnected: %s", peer)
 
-    return await asyncio.start_server(handler, cfg.stratum_host, cfg.stratum_port)
+    return await asyncio.start_server(handler, cfg.stratum_host, cfg.stratum_port, limit=65536, backlog=128)
 
 
 def zmq_thread(cfg, loop, pool, stop_event):
@@ -97,11 +97,16 @@ async def template_recovery_loop(pool):
                 await pool.refresh_job("rpc-recovery")
                 delay = 10
             else:
-                # Safety net for missed ZMQ notifications. Only create a new
-                # job when the chain tip actually changed, avoiding needless
-                # job churn from normal template polling.
-                await pool.refresh_job("fallback", only_if_new_block=True)
-                delay = 60
+                # ZMQ is the fast path, but a periodic GBT refresh protects
+                # against missed notifications and keeps transaction/ntime
+                # templates fresh. Same-tip refreshes use clean_jobs=false,
+                # so miners do not throw away valid work in flight.
+                age = time.time() - pool.job.created
+                if age >= 30:
+                    await pool.refresh_job("template-refresh")
+                else:
+                    await pool.refresh_job("fallback", only_if_new_block=True)
+                delay = 15
         except Exception:
             log.exception("template recovery loop failed")
             delay = 10
@@ -177,6 +182,10 @@ async def main_async():
         log.info("Shutting down BCH Solo Pool")
         stop_event.set()
         recovery_task.cancel()
+        try:
+            await recovery_task
+        except asyncio.CancelledError:
+            pass
         server.close()
         await server.wait_closed()
         if zmq_worker is not None:
