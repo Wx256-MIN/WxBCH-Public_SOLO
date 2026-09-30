@@ -72,3 +72,6 @@ class BCHRPC:
 
     def get_mining_info(self):
         return self.call("getmininginfo")
+
+    def get_network_info(self):
+        return self.call("getnetworkinfo")
