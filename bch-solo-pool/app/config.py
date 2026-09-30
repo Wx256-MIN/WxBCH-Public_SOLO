@@ -107,29 +107,6 @@ class Config:
         )[2:4]
 
 
-        start = float(start_difficulty)
-        minimum = float(min_difficulty)
-        if minimum <= 0:
-            raise ValueError("Minimum difficulty must be greater than 0")
-        if start <= 0:
-            raise ValueError("Start difficulty must be greater than 0")
-        if minimum > self.vardiff_max:
-            raise ValueError("Minimum difficulty cannot exceed maximum difficulty")
-        if start < minimum:
-            raise ValueError("Start difficulty must be greater than or equal to minimum difficulty")
-        if start > self.vardiff_max:
-            raise ValueError("Start difficulty cannot exceed maximum difficulty")
-        saved = self._load_saved()
-        saved["START_DIFFICULTY"] = start
-        saved["VARDIFF_MIN"] = minimum
-        self.config_path.parent.mkdir(parents=True, exist_ok=True)
-        tmp = self.config_path.with_suffix(".tmp")
-        tmp.write_text(json.dumps(saved, indent=2) + "\n")
-        os.replace(tmp, self.config_path)
-        self.start_difficulty = start
-        self.vardiff_min = minimum
-        return start, minimum
-
     @property
     def configured(self):
         return bool(self.payout_address and self.rpc_url and self.rpc_user)
