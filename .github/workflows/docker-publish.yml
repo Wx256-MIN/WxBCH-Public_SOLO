@@ -17,6 +17,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Run Python tests
+        working-directory: ./bch-solo-pool
+        run: python -m unittest discover -s tests -v
+
+      - name: Compile Python sources
+        working-directory: ./bch-solo-pool
+        run: python -m compileall -q app
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
