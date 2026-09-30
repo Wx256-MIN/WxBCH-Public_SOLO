@@ -147,7 +147,6 @@ async def main_async():
         log.warning("BCHN template unavailable at startup; recovery loop will retry automatically.")
 
     asyncio.create_task(template_recovery_loop(pool))
-    asyncio.create_task(inactive_worker_loop(pool))
 
     if cfg.zmq_url:
         threading.Thread(
