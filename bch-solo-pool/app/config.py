@@ -65,7 +65,48 @@ class Config:
             return {}
 
 
+
+    def save_vardiff_settings(self, enabled, target_seconds, start_difficulty, min_difficulty, max_difficulty):
+        enabled = bool(enabled)
+        target = float(target_seconds)
+        start = float(start_difficulty)
+        minimum = float(min_difficulty)
+        maximum = float(max_difficulty)
+        if target < 5 or target > 600:
+            raise ValueError("Vardiff target time must be between 5 and 600 seconds")
+        if minimum <= 0 or start <= 0 or maximum <= 0:
+            raise ValueError("Difficulty values must be greater than 0")
+        if minimum > maximum:
+            raise ValueError("Minimum difficulty cannot exceed maximum difficulty")
+        if start < minimum or start > maximum:
+            raise ValueError("Start difficulty must be between minimum and maximum difficulty")
+        saved = self._load_saved()
+        saved["VARDIFF_ENABLED"] = enabled
+        saved["VARDIFF_TARGET_SECONDS"] = target
+        saved["START_DIFFICULTY"] = start
+        saved["VARDIFF_MIN"] = minimum
+        saved["VARDIFF_MAX"] = maximum
+        self.config_path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = self.config_path.with_suffix(".tmp")
+        tmp.write_text(json.dumps(saved, indent=2) + "\n")
+        os.replace(tmp, self.config_path)
+        self.vardiff_enabled = enabled
+        self.vardiff_target_seconds = target
+        self.start_difficulty = start
+        self.vardiff_min = minimum
+        self.vardiff_max = maximum
+        return enabled, target, start, minimum, maximum
+
     def save_pool_settings(self, start_difficulty, min_difficulty):
+        return self.save_vardiff_settings(
+            self.vardiff_enabled,
+            self.vardiff_target_seconds,
+            start_difficulty,
+            min_difficulty,
+            self.vardiff_max,
+        )[2:4]
+
+
         start = float(start_difficulty)
         minimum = float(min_difficulty)
         if minimum <= 0:
