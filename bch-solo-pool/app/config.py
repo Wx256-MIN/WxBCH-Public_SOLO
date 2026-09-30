@@ -105,10 +105,7 @@ class Config:
         saved["START_DIFFICULTY"] = start
         saved["VARDIFF_MIN"] = minimum
         saved["VARDIFF_MAX"] = maximum
-        self.config_path.parent.mkdir(parents=True, exist_ok=True)
-        tmp = self.config_path.with_suffix(".tmp")
-        tmp.write_text(json.dumps(saved, indent=2) + "\n")
-        os.replace(tmp, self.config_path)
+        self._atomic_write(saved)
         self.vardiff_enabled = enabled
         self.vardiff_target_seconds = target
         self.start_difficulty = start
@@ -126,6 +123,22 @@ class Config:
         )[2:4]
 
 
+    def _atomic_write(self, data):
+        self.config_path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = self.config_path.with_suffix(self.config_path.suffix + ".tmp")
+        payload = (json.dumps(data, indent=2) + "\n").encode("utf-8")
+        fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        try:
+            os.write(fd, payload)
+            os.fsync(fd)
+        finally:
+            os.close(fd)
+        os.replace(tmp, self.config_path)
+        try:
+            os.chmod(self.config_path, 0o600)
+        except OSError:
+            pass
+
     @property
     def configured(self):
         return bool(self.payout_address and self.rpc_url and self.rpc_user)
@@ -140,8 +153,5 @@ class Config:
             "BCH_ZMQ_URL": str(data.get("BCH_ZMQ_URL", "")).strip(),
             "BCH_PAYOUT_ADDRESS": str(data["BCH_PAYOUT_ADDRESS"]).strip(),
         })
-        self.config_path.parent.mkdir(parents=True, exist_ok=True)
-        tmp = self.config_path.with_suffix(".tmp")
-        tmp.write_text(json.dumps(clean, indent=2) + "\n")
-        os.replace(tmp, self.config_path)
+        self._atomic_write(clean)
         return clean
