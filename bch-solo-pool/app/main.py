@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import signal
 import threading
 import time
 
@@ -31,48 +32,59 @@ async def stratum_server(pool, cfg):
     return await asyncio.start_server(handler, cfg.stratum_host, cfg.stratum_port)
 
 
-def zmq_thread(cfg, loop, pool):
-    """Keep the BCHN ZMQ subscriber alive and reconnect after outages."""
+def zmq_thread(cfg, loop, pool, stop_event):
+    """Keep the BCHN ZMQ subscriber alive and reconnect after outages.
+
+    ZMQ is treated as a fast notification channel, not as the source of truth.
+    Every notification still causes the pool to fetch a fresh GBT from BCHN.
+    """
     if not cfg.zmq_url:
         return
 
     import zmq
 
     ctx = zmq.Context()
-    while True:
-        socket = None
-        try:
-            socket = ctx.socket(zmq.SUB)
-            socket.setsockopt(zmq.SUBSCRIBE, b"hashblock")
-            socket.setsockopt(zmq.RCVTIMEO, 5000)
-            socket.connect(cfg.zmq_url)
-            log.info("ZMQ connected: %s", cfg.zmq_url)
+    try:
+        while not stop_event.is_set():
+            socket = None
+            try:
+                socket = ctx.socket(zmq.SUB)
+                socket.setsockopt(zmq.SUBSCRIBE, b"hashblock")
+                socket.setsockopt(zmq.RCVTIMEO, 1000)
+                socket.setsockopt(zmq.LINGER, 0)
+                socket.connect(cfg.zmq_url)
+                log.info("ZMQ connected: %s", cfg.zmq_url)
 
-            while True:
-                try:
-                    parts = socket.recv_multipart()
-                except zmq.Again:
-                    # Keep the receive loop alive even when BCHN is quiet.
-                    continue
-
-                if parts and parts[0] == b"hashblock":
-                    future = asyncio.run_coroutine_threadsafe(
-                        pool.refresh_job("zmq-hashblock"),
-                        loop
-                    )
+                while not stop_event.is_set():
                     try:
-                        future.result(timeout=30)
+                        parts = socket.recv_multipart()
+                    except zmq.Again:
+                        continue
+
+                    if parts and parts[0] == b"hashblock":
+                        future = asyncio.run_coroutine_threadsafe(
+                            pool.refresh_job("zmq-hashblock", only_if_new_block=True),
+                            loop
+                        )
+                        try:
+                            future.result(timeout=30)
+                        except Exception:
+                            log.exception("ZMQ-triggered job refresh failed")
+            except Exception:
+                if not stop_event.is_set():
+                    log.exception("ZMQ listener disconnected; retrying")
+            finally:
+                if socket is not None:
+                    try:
+                        socket.close(0)
                     except Exception:
-                        log.exception("ZMQ-triggered job refresh failed")
+                        pass
+            stop_event.wait(5)
+    finally:
+        try:
+            ctx.term()
         except Exception:
-            log.exception("ZMQ listener disconnected; retrying in 5 seconds")
-        finally:
-            if socket is not None:
-                try:
-                    socket.close(0)
-                except Exception:
-                    pass
-        time.sleep(5)
+            pass
 
 
 async def template_recovery_loop(pool):
@@ -94,15 +106,6 @@ async def template_recovery_loop(pool):
             log.exception("template recovery loop failed")
             delay = 10
         await asyncio.sleep(delay)
-
-
-async def inactive_worker_loop(pool):
-    while True:
-        try:
-            await pool.cleanup_inactive_workers()
-        except Exception:
-            log.exception("inactive worker cleanup failed")
-        await asyncio.sleep(60)
 
 
 async def main_async():
@@ -146,19 +149,49 @@ async def main_async():
     if pool.job is None:
         log.warning("BCHN template unavailable at startup; recovery loop will retry automatically.")
 
-    asyncio.create_task(template_recovery_loop(pool))
+    stop_event = threading.Event()
+    recovery_task = asyncio.create_task(template_recovery_loop(pool))
 
+    zmq_worker = None
     if cfg.zmq_url:
-        threading.Thread(
-            target=zmq_thread, args=(cfg, loop, pool), daemon=True
-        ).start()
+        zmq_worker = threading.Thread(
+            target=zmq_thread, args=(cfg, loop, pool, stop_event),
+            name="bchn-zmq", daemon=True
+        )
+        zmq_worker.start()
 
     server = await stratum_server(pool, cfg)
     log.info("Stratum listening on %s:%s", cfg.stratum_host, cfg.stratum_port)
     log.info("Web listening on %s:%s", cfg.web_host, cfg.web_port)
 
-    async with server:
-        await server.serve_forever()
+    shutdown = asyncio.Event()
+    for sig in (signal.SIGTERM, signal.SIGINT):
+        try:
+            loop.add_signal_handler(sig, shutdown.set)
+        except (NotImplementedError, RuntimeError):
+            pass
+
+    try:
+        await shutdown.wait()
+    finally:
+        log.info("Shutting down BCH Solo Pool")
+        stop_event.set()
+        recovery_task.cancel()
+        server.close()
+        await server.wait_closed()
+        if zmq_worker is not None:
+            zmq_worker.join(timeout=3)
+        for miner in list(pool.miners):
+            await miner.close()
+        pool.miners.clear()
+        try:
+            web.stop()
+        except Exception:
+            pass
+        try:
+            db.close()
+        except Exception:
+            pass
 
 
 if __name__ == "__main__":
