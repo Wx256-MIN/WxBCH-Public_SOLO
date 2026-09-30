@@ -24,9 +24,25 @@ class Config:
             # Explicit values saved from the dashboard take precedence over
             # container defaults. This makes the editable setup persistent
             # across restarts while still using Umbrel exports on first launch.
-            if name in saved and saved.get(name) not in (None, ""):
-                return saved.get(name)
+            saved_value = saved.get(name)
             env = os.getenv(name)
+
+            # Migrate the old pool-local BCHN endpoints. Previous releases
+            # incorrectly stored bitcoind:8332/28332, but the official Umbrel
+            # BCHN app runs in a separate app stack and exports its fixed IP.
+            legacy_endpoints = {
+                "BCH_RPC_URL": {"http://bitcoind:8332", "http://bitcoind:8332/"},
+                "BCH_ZMQ_URL": {"tcp://bitcoind:28332"},
+            }
+            if (
+                name in legacy_endpoints
+                and saved_value in legacy_endpoints[name]
+                and env not in (None, "")
+            ):
+                return env
+
+            if saved_value not in (None, ""):
+                return saved_value
             return env if env not in (None, "") else default
 
         def setting(name, default):
