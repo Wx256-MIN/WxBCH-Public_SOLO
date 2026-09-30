@@ -211,7 +211,7 @@ class Miner:
         finally:
             self.pool.miners.discard(self)
             if self.authorized and self.worker != "unknown":
-                self.pool.db.set_worker_connected(self.worker, False)
+                self.pool.update_worker_connection(self.worker)
             self.pool.db.event("disconnect", self.worker, "")
 
     async def handle(self, msg):
@@ -301,6 +301,10 @@ class Miner:
             await self.send({"id": mid, "result": result, "error": error})
             return
 
+        if method == "mining.ping":
+            await self.send({"id": mid, "result": True, "error": None})
+            return
+
         if method == "mining.get_version":
             await self.send({"id": mid, "result": "bch-solo-pool/1.1", "error": None})
             return
@@ -352,6 +356,14 @@ class Pool:
         self._seen_shares = set()
         self._seen_order = []
         self._seen_limit = 100000
+
+    def update_worker_connection(self, worker):
+        """Keep the DB connected flag correct when a worker has multiple sessions."""
+        connected = any(
+            miner.authorized and miner.worker == worker
+            for miner in self.miners
+        )
+        self.db.set_worker_connected(worker, connected)
 
     async def cleanup_inactive_workers(self):
         """Disconnect authorized miners that have produced no share for 30 minutes."""
