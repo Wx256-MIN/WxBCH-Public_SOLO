@@ -406,12 +406,13 @@ class Miner:
         if method == "mining.get_transactions":
             job_id = str(params[0]) if params else ""
             requested_ids = params[1] if len(params) > 1 and isinstance(params[1], list) else []
-            if not self.pool.job or job_id != self.pool.job.job_id:
+            job = self.pool.jobs.get(job_id)
+            if job is None:
                 await self.send({"id": mid, "result": [], "error": [21, "Job not found", None]})
                 return
             tx_map = {
                 str(item.get("txid", "")).lower(): str(item.get("data", ""))
-                for item in self.pool.job.template.get("transactions", [])
+                for item in job.template.get("transactions", [])
             }
             result = [tx_map[x.lower()] for x in requested_ids if str(x).lower() in tx_map]
             await self.send({"id": mid, "result": result, "error": None})
@@ -481,6 +482,10 @@ class Pool:
         self.db = db
         self.miners = set()
         self.job = None
+        # Retain a small ring of recent jobs so in-flight same-tip shares
+        # survive template refreshes without accepting old-chain work.
+        self.jobs = {}
+        self.job_history_limit = 8
         self.job_lock = asyncio.Lock()
         self.start_difficulty = cfg.start_difficulty
         self.payout_script = address_to_script(cfg.payout_address)
@@ -499,26 +504,30 @@ class Pool:
 
     async def refresh_job(self, reason="poll", only_if_new_block=False):
         try:
-            # Serialize template fetches so ZMQ and fallback recovery cannot
-            # race each other and create duplicate jobs.
             async with self.job_lock:
                 template = await asyncio.to_thread(self.rpc.get_template)
-
-                if only_if_new_block and self.job is not None:
+                same_tip = False
+                if self.job is not None:
                     same_tip = (
                         int(template.get("height", -1)) == self.job.height
                         and str(template.get("previousblockhash", "")) == self.job.prevhash
                     )
-                    if same_tip:
+                    if only_if_new_block and same_tip:
                         return False
 
-                self.job = Job(template, self.payout_script, self.cfg.coinbase_message)
+                new_job = Job(template, self.payout_script, self.cfg.coinbase_message)
+                self.job = new_job
+                self.jobs[new_job.job_id] = new_job
+                while len(self.jobs) > self.job_history_limit:
+                    oldest = next(iter(self.jobs))
+                    self.jobs.pop(oldest, None)
 
+            clean = not same_tip
             log.info(
-                "new job height=%s job=%s reason=%s txs=%s",
-                self.job.height, self.job.job_id, reason, len(self.job.tx_hex)
+                "new job height=%s job=%s reason=%s txs=%s clean=%s",
+                self.job.height, self.job.job_id, reason, len(self.job.tx_hex), clean
             )
-            await self.broadcast_job(clean=True)
+            await self.broadcast_job(clean=clean)
             return True
         except Exception:
             log.exception("template refresh failed")
@@ -555,10 +564,11 @@ class Pool:
         if not self.job:
             return
         miner.job_difficulties[self.job.job_id] = miner.difficulty
-        # Keep only a small history in case a miner submits a just-finished job.
-        if len(miner.job_difficulties) > 16:
-            for old in list(miner.job_difficulties)[:-16]:
-                miner.job_difficulties.pop(old, None)
+        if len(miner.job_difficulties) > self.job_history_limit + 4:
+            keep = set(self.jobs)
+            for old in list(miner.job_difficulties):
+                if old not in keep:
+                    miner.job_difficulties.pop(old, None)
 
     def _remember_share(self, key):
         if key in self._seen_shares:
@@ -582,7 +592,10 @@ class Pool:
         version_bits_hex = str(params[5]) if len(params) >= 6 else None
         if worker != miner.worker:
             return False, [21, "Worker mismatch", None]
-        if job_id != self.job.job_id:
+        job = self.jobs.get(job_id)
+        if job is None:
+            return False, [21, "Stale share", None]
+        if job.prevhash != self.job.prevhash or job.height != job.height:
             return False, [21, "Stale share", None]
 
         try:
@@ -600,37 +613,37 @@ class Pool:
 
         if len(ex2) != miner.ex2_size or not 0 <= nonce <= 0xffffffff:
             return False, [20, "Invalid extranonce2/nonce", None]
-        mintime = int(self.job.template.get("mintime", 0))
+        mintime = int(job.template.get("mintime", 0))
         # mining.submit ntime is a normal uint32 hex value, matching the
         # ntime field advertised by mining.notify. The block header later
         # serializes it as little-endian bytes.
         if not mintime <= ntime <= int(time.time()) + 7200:
             return False, [20, "Invalid ntime", None]
 
-        key = (self.job.job_id, miner.worker, ex2_hex.lower(), ntime, nonce, version_bits)
+        key = (job.job_id, miner.worker, ex2_hex.lower(), ntime, nonce, version_bits)
         if not self._remember_share(key):
             return False, [22, "Duplicate share", None]
 
-        cb = self.job.coinbase(miner.ex1, ex2)
+        cb = job.coinbase(miner.ex1, ex2)
         header_version = (
-            apply_version_rolling(self.job.version, miner.version_mask, version_bits)
-            if miner.version_rolling else self.job.version
+            apply_version_rolling(job.version, miner.version_mask, version_bits)
+            if miner.version_rolling else job.version
         )
-        header = self.job.header(cb, nonce, ntime, header_version)
+        header = job.header(cb, nonce, ntime, header_version)
         digest = sha256d(header)
 
         # A vardiff update must never retroactively change the target for a
         # job already in the miner. Validate against the difficulty pinned to
         # this job, not the miner's newer pending/current difficulty.
         share_difficulty = miner.job_difficulties.get(
-            self.job.job_id, miner.difficulty
+            job.job_id, miner.difficulty
         )
         share_target = difficulty_to_target(share_difficulty)
         if not hash_meets_target(digest, share_target):
             self.db.share(miner.worker, False, difficulty=share_difficulty)
             return False, [23, "Low difficulty share", None]
 
-        block = hash_meets_target(digest, self.job.network_target)
+        block = hash_meets_target(digest, job.network_target)
         best_diff = target_to_difficulty(int.from_bytes(digest, "little"))
         miner.session_best_diff = max(miner.session_best_diff, best_diff)
         now = time.time()
@@ -691,7 +704,7 @@ class Pool:
                         pass
 
         if block:
-            block_hex = self.job.block_hex(cb, nonce, ntime, header_version)
+            block_hex = job.block_hex(cb, nonce, ntime, header_version)
             result = await asyncio.to_thread(self.rpc.submit_block, block_hex)
             h = digest[::-1].hex()
             self.db.block(self.job.height, self.job.job_id, miner.worker, h, str(result))
