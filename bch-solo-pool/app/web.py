@@ -78,7 +78,7 @@ class Web:
                     live = {}
                     if outer.pool is not None:
                         for miner in list(outer.pool.miners):
-                            if not miner.authorized or miner.worker in ("", "unknown", "worker"):
+                            if not miner.authorized or miner.worker in ("", "unknown"):
                                 continue
                             item = live.setdefault(miner.worker, {
                                 "hashrate": 0.0,
