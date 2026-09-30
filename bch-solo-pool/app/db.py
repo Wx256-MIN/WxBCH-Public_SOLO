@@ -10,9 +10,16 @@ class DB:
         self.lock = threading.Lock()
         with self.conn:
             self.conn.execute("PRAGMA journal_mode=WAL")
-            self.conn.execute("PRAGMA synchronous=NORMAL")
-            self.conn.execute("PRAGMA busy_timeout=10000")
+            # FULL is slightly more conservative than NORMAL and is preferable
+            # for a solo pool because the share/block history is operational data.
+            self.conn.execute("PRAGMA synchronous=FULL")
+            self.conn.execute("PRAGMA busy_timeout=30000")
+            self.conn.execute("PRAGMA foreign_keys=ON")
         self._init()
+
+    def close(self):
+        with self.lock:
+            self.conn.close()
 
     def _migrate(self):
         cols = {row[1] for row in self.conn.execute("PRAGMA table_info(workers)")}
