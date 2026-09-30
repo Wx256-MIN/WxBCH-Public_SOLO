@@ -134,9 +134,12 @@ class Job:
             coinbase_prefix,
             coinbase_suffix,
             [x.hex() for x in self.merkle_branch],
-            struct.pack("<I", self.version).hex(),
+            # Stratum encodes version and ntime as normal 8-char
+            # hexadecimal uint32 strings. Do not serialize these two fields
+            # in little-endian byte order; only the binary block header does.
+            f"{self.version & 0xffffffff:08x}",
             self.bits,
-            struct.pack("<I", self.ntime).hex(),
+            f"{self.ntime & 0xffffffff:08x}",
             bool(clean),
         ]
 
@@ -333,6 +336,9 @@ class Pool:
         if len(ex2) != miner.ex2_size or not 0 <= nonce <= 0xffffffff:
             return False, [20, "Invalid extranonce2/nonce", None]
         mintime = int(self.job.template.get("mintime", 0))
+        # mining.submit ntime is a normal uint32 hex value, matching the
+        # ntime field advertised by mining.notify. The block header later
+        # serializes it as little-endian bytes.
         if not mintime <= ntime <= int(time.time()) + 7200:
             return False, [20, "Invalid ntime", None]
 
