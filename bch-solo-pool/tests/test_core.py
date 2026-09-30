@@ -5,7 +5,7 @@ sys.path.insert(0, ".")
 
 from app.crypto import sha256d, encode_compact_target, difficulty_to_target, DIFF1_TARGET, merkle_root, hash_meets_target
 from app.address import decode_cashaddr
-from app.stratum import Job
+from app.stratum import Job, apply_version_rolling
 
 
 class CoreTests(unittest.TestCase):
@@ -77,6 +77,26 @@ class CoreTests(unittest.TestCase):
     def test_merkle_one(self):
         h = sha256d(b"abc")
         self.assertEqual(merkle_root([h]), h)
+
+    def test_bip310_version_rolling_preserves_protected_bits(self):
+        base = 0x20000002
+        mask = 0x1fffe000
+        rolled = 0x15554000
+        actual = apply_version_rolling(base, mask, rolled)
+        self.assertEqual(actual & ~mask, base & ~mask)
+        self.assertEqual(actual & mask, rolled & mask)
+
+    def test_bip310_version_rolling_zero_mask(self):
+        base = 0x20000002
+        self.assertEqual(apply_version_rolling(base, 0, 0xffffffff), base)
+
+    def test_stratum_suggest_target_conversion_matches_difficulty(self):
+        target = DIFF1_TARGET // 1000
+        self.assertAlmostEqual(
+            target_to_difficulty(target),
+            1000.0,
+            delta=0.001,
+        )
 
     def test_cashaddr(self):
         script = decode_cashaddr("bitcoincash:qpm2qsznhks23z7629mms6s4cwef74vcwvy22gdx6a")
