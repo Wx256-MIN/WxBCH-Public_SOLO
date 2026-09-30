@@ -47,6 +47,14 @@ def zmq_thread(cfg, loop, pool):
         log.exception("ZMQ listener stopped")
 
 
+async def inactive_worker_loop(pool):
+    while True:
+        try:
+            await pool.cleanup_inactive_workers()
+        except Exception:
+            log.exception("inactive worker cleanup failed")
+        await asyncio.sleep(60)
+
 async def main_async():
     cfg = Config()
     logging.basicConfig(
@@ -107,6 +115,7 @@ async def main_async():
             target=zmq_thread, args=(cfg, loop, pool), daemon=True
         ).start()
 
+    asyncio.create_task(inactive_worker_loop(pool))
     server = await stratum_server(pool, cfg)
     log.info("Stratum listening on %s:%s", cfg.stratum_host, cfg.stratum_port)
     log.info("Web listening on %s:%s", cfg.web_host, cfg.web_port)
