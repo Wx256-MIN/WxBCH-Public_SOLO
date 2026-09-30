@@ -3,6 +3,7 @@ import json
 import threading
 import urllib.parse
 import urllib.request
+import time
 
 log = __import__("logging").getLogger(__name__)
 
@@ -50,14 +51,24 @@ class BCHRPC:
             "jsonrpc": "1.0", "id": rid, "method": method, "params": params or []
         }).encode()
         req = urllib.request.Request(self.url, data=body, headers=self.headers, method="POST")
-        try:
-            with urllib.request.urlopen(req, timeout=self.timeout) as response:
-                obj = json.loads(response.read())
-        except Exception as exc:
-            raise RuntimeError(f"RPC {method} failed: {exc}") from exc
-        if obj.get("error"):
-            raise RuntimeError(f"RPC {method}: {obj['error']}")
-        return obj["result"]
+        last_exc = None
+        for attempt in range(3):
+            try:
+                with urllib.request.urlopen(req, timeout=self.timeout) as response:
+                    obj = json.loads(response.read())
+                if obj.get("error"):
+                    # JSON-RPC application errors are deterministic; retrying
+                    # them only adds latency and can hide real configuration
+                    # problems.
+                    raise RuntimeError(f"RPC {method}: {obj['error']}")
+                return obj["result"]
+            except RuntimeError:
+                raise
+            except Exception as exc:
+                last_exc = exc
+                if attempt < 2:
+                    time.sleep(0.25 * (attempt + 1))
+        raise RuntimeError(f"RPC {method} failed after 3 attempts: {last_exc}") from last_exc
 
     def get_template(self):
         return self.call("getblocktemplate", [{
