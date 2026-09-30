@@ -51,6 +51,8 @@ class Web:
                         "rpc_user": outer.cfg.rpc_user,
                         "zmq_url": outer.cfg.zmq_url,
                         "payout_address": outer.cfg.payout_address,
+                        "vardiff_enabled": outer.cfg.vardiff_enabled,
+                        "vardiff_target_seconds": outer.cfg.vardiff_target_seconds,
                         "start_difficulty": outer.cfg.start_difficulty,
                         "min_difficulty": outer.cfg.vardiff_min,
                         "max_difficulty": outer.cfg.vardiff_max,
@@ -144,6 +146,57 @@ class Web:
                             self._send(200, json.dumps({"ok": True, "message": "New mining job created"}))
                             return
                         raise ValueError("Unknown dashboard action")
+                    except Exception as exc:
+                        self._send(400, json.dumps({"ok": False, "error": str(exc)}))
+                    return
+
+                if path == "/api/vardiff-settings":
+                    try:
+                        body = self._json_body()
+                        enabled = bool(body.get("enabled", True))
+                        target = float(body.get("target_seconds"))
+                        start = float(body.get("start_difficulty"))
+                        minimum = float(body.get("min_difficulty"))
+                        maximum = float(body.get("max_difficulty"))
+                        enabled, target, start, minimum, maximum = outer.cfg.save_vardiff_settings(
+                            enabled, target, start, minimum, maximum
+                        )
+                        changed = 0
+                        if outer.pool is not None:
+                            outer.pool.start_difficulty = start
+                            outer.cfg.vardiff_enabled = enabled
+                            outer.cfg.vardiff_target_seconds = target
+                            outer.cfg.vardiff_min = minimum
+                            outer.cfg.vardiff_max = maximum
+                            # If the new minimum is above a connected miner's
+                            # current target, raise it immediately. Otherwise
+                            # let vardiff converge naturally.
+                            for miner in list(outer.pool.miners):
+                                new_difficulty = max(minimum, min(maximum, miner.difficulty))
+                                if abs(new_difficulty - miner.difficulty) > 1e-12:
+                                    miner.difficulty = new_difficulty
+                                    outer.pool.db.touch_worker(miner.worker, new_difficulty)
+                                    try:
+                                        awaitable = miner.send({
+                                            "id": None,
+                                            "method": "mining.set_difficulty",
+                                            "params": [new_difficulty]
+                                        })
+                                        future = asyncio.run_coroutine_threadsafe(awaitable, outer.loop)
+                                        future.result(timeout=5)
+                                        changed += 1
+                                    except Exception:
+                                        pass
+                        self._send(200, json.dumps({
+                            "ok": True,
+                            "message": "Vardiff settings saved",
+                            "enabled": enabled,
+                            "target_seconds": target,
+                            "start_difficulty": start,
+                            "min_difficulty": minimum,
+                            "max_difficulty": maximum,
+                            "miners_updated": changed,
+                        }))
                     except Exception as exc:
                         self._send(400, json.dumps({"ok": False, "error": str(exc)}))
                     return
@@ -499,13 +552,18 @@ body{overflow-x:hidden}
  </div>
  <div class="field"><label>BCH payout address</label><input id="payout" autocomplete="off" autocapitalize="none" spellcheck="false"></div>
 
- <div class="cardHead" style="margin-top:18px"><h2>Mining difficulty</h2><span class="muted">Share target settings</span></div>
+ <div class="cardHead" style="margin-top:18px"><h2>Difficulty (Vardiff)</h2><span class="muted">Automatic share difficulty</span></div>
+ <div class="split">
+  <div class="field"><label>Vardiff</label><label class="toggle"><input id="vardiffEnabled" type="checkbox"> Enable automatic difficulty</label></div>
+  <div class="field"><label>Target share time (seconds)</label><input id="vardiffTarget" type="number" min="5" max="600" step="1" placeholder="30"></div>
+ </div>
  <div class="split">
   <div class="field"><label>Start difficulty</label><input id="startDiff" type="number" min="0.000001" step="any" placeholder="1000"></div>
   <div class="field"><label>Minimum difficulty</label><input id="minDiff" type="number" min="0.000001" step="any" placeholder="0.001"></div>
  </div>
- <p class="muted" style="font-size:10px">Start difficulty is used for new miner sessions. Minimum difficulty is the lowest vardiff target the pool will use. Start difficulty must be greater than or equal to minimum difficulty.</p>
- <div class="heroActions"><button class="btn primary" onclick="saveSetup()">Save & restart</button><button class="btn" onclick="savePoolSettings()">Apply difficulty</button><button class="btn" onclick="clearSetupFields()">Clear</button></div>
+ <div class="field"><label>Maximum difficulty</label><input id="maxDiff" type="number" min="0.000001" step="any" placeholder="65536"></div>
+ <p class="muted" style="font-size:10px">Vardiff adjusts each miner's share difficulty toward the target share time. Start is used for new miners; Minimum and Maximum are hard vardiff limits.</p>
+ <div class="heroActions"><button class="btn primary" onclick="saveSetup()">Save & restart</button><button class="btn" onclick="saveVardiffSettings()">Apply Vardiff</button><button class="btn" onclick="clearSetupFields()">Clear</button></div>
  <p id="setupmsg" class="muted"></p>
 </section>
 
@@ -620,8 +678,11 @@ async function showSetup(loadSaved=true){
  try{
   const c=await api('/api/config');
   $('rpc').value=c.rpc_url||'';$('user').value=c.rpc_user||'';$('zmq').value=c.zmq_url||'';$('payout').value=c.payout_address||'';$('pass').value='';
+  $('vardiffEnabled').checked=c.vardiff_enabled!==false;
+  $('vardiffTarget').value=c.vardiff_target_seconds??30;
   $('startDiff').value=c.start_difficulty??1000;
   $('minDiff').value=c.min_difficulty??0.001;
+  $('maxDiff').value=c.max_difficulty??65536;
  }catch(e){}
 }
 function hideSetup(){$('setup').classList.remove('visible');$('dash').classList.remove('hidden')}
@@ -631,19 +692,20 @@ async function saveSetup(){
  $('setupmsg').textContent='Testing RPC and saving…';
  try{
   const x=await api('/api/setup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-  if(x.ok){await savePoolSettings(true);$('setupmsg').textContent=x.message}else $('setupmsg').textContent='Error: '+x.error
+  if(x.ok){await saveVardiffSettings(true);$('setupmsg').textContent=x.message}else $('setupmsg').textContent='Error: '+x.error
  }catch(e){$('setupmsg').textContent='Error: '+e}
 }
-async function savePoolSettings(silent=false){
- const start=Number($('startDiff').value), minimum=Number($('minDiff').value);
- if(!isFinite(start)||!isFinite(minimum)||start<=0||minimum<=0){$('setupmsg').textContent='Error: enter valid positive difficulty values';return false}
+async function saveVardiffSettings(silent=false){
+ const enabled=$('vardiffEnabled').checked,target=Number($('vardiffTarget').value),start=Number($('startDiff').value),minimum=Number($('minDiff').value),maximum=Number($('maxDiff').value);
+ if(!isFinite(target)||!isFinite(start)||!isFinite(minimum)||!isFinite(maximum)||target<5||target>600||start<=0||minimum<=0||maximum<=0){$('setupmsg').textContent='Error: enter valid Vardiff values';return false}
  try{
-  const x=await api('/api/pool-settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({start_difficulty:start,min_difficulty:minimum})});
+  const x=await api('/api/vardiff-settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled,target_seconds:target,start_difficulty:start,min_difficulty:minimum,max_difficulty:maximum})});
   if(!x.ok){$('setupmsg').textContent='Error: '+x.error;return false}
   if(!silent)$('setupmsg').textContent=x.message+(x.miners_updated?' · Updated '+x.miners_updated+' miner(s)':'');
   return true
  }catch(e){$('setupmsg').textContent='Error: '+e;return false}
 }
+async function savePoolSettings(silent=false){return saveVardiffSettings(silent)}
 function displayWorkerName(name){
  const s=String(name||'').trim();
  if(!s)return 'Unknown';
