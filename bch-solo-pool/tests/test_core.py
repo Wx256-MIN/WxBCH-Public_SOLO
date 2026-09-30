@@ -39,6 +39,17 @@ class CoreTests(unittest.TestCase):
         self.assertEqual(len(bytes.fromhex(j.block_hex(cb, 0))), 80 + 1 + len(cb))
 
 
+    def test_stratum_notify_preserves_clean_jobs_flag(self):
+        t = {
+            "height": 900000, "previousblockhash": "11" * 32,
+            "version": 2, "bits": "1d00ffff", "curtime": 1700000000,
+            "mintime": 1699990000, "coinbasevalue": 1000, "transactions": []
+        }
+        script = decode_cashaddr("bitcoincash:qpm2qsznhks23z7629mms6s4cwef74vcwvy22gdx6a")
+        j = Job(t, script, "test")
+        self.assertTrue(j.notify(True)[8])
+        self.assertFalse(j.notify(False)[8])
+
     def test_stratum_notify_uses_uint32_hex_for_version_and_ntime(self):
         t = {
             "height": 900000, "previousblockhash": "11" * 32,
