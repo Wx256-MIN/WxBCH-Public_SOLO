@@ -24,6 +24,14 @@ def push_data(data: bytes) -> bytes:
     return b"\x4d" + struct.pack("<H", n) + data
 
 
+
+
+def reverse_32bit_words(data: bytes) -> bytes:
+    """Swap byte order inside each 4-byte word (Stratum prevhash format)."""
+    if len(data) % 4:
+        raise ValueError("32-bit word reversal requires a multiple of 4 bytes")
+    return b"".join(data[i:i + 4][::-1] for i in range(0, len(data), 4))
+
 def encode_height(height):
     n = int(height)
     b = bytearray()
@@ -106,7 +114,7 @@ class Job:
         version = self.version if version is None else int(version)
         return (
             struct.pack("<I", version) +
-            bytes.fromhex(self.prevhash)[::-1] +
+            reverse_32bit_words(bytes.fromhex(self.prevhash)) +
             self.merkle_for_coinbase(coinbase) +
             struct.pack("<I", ntime) +
             bytes.fromhex(self.bits)[::-1] +
@@ -130,7 +138,7 @@ class Job:
         ).hex()
         return [
             self.job_id,
-            bytes.fromhex(self.prevhash)[::-1].hex(),
+            reverse_32bit_words(bytes.fromhex(self.prevhash)).hex(),
             coinbase_prefix,
             coinbase_suffix,
             [x.hex() for x in self.merkle_branch],
@@ -228,9 +236,35 @@ class Miner:
                     "version-rolling": True,
                     "version-rolling.mask": f"{mask:08x}",
                 }
+                await self.send({"id": mid, "result": result, "error": None})
+                await self.send({
+                    "id": None,
+                    "method": "mining.set_version_mask",
+                    "params": [f"{mask:08x}"]
+                })
             else:
                 result = {"version-rolling": False}
-            await self.send({"id": mid, "result": result, "error": None})
+                await self.send({"id": mid, "result": result, "error": None})
+            return
+
+        if method == "mining.suggest_difficulty":
+            try:
+                suggested = float(params[0])
+            except (IndexError, TypeError, ValueError):
+                suggested = 0.0
+            if suggested > 0 and self.shares == 0:
+                self.difficulty = max(
+                    self.pool.cfg.vardiff_min,
+                    min(self.pool.cfg.vardiff_max, suggested)
+                )
+                self.pool.db.touch_worker(self.worker, self.difficulty)
+            await self.send({"id": mid, "result": True, "error": None})
+            if suggested > 0 and self.shares == 0:
+                await self.send({
+                    "id": None,
+                    "method": "mining.set_difficulty",
+                    "params": [self.difficulty]
+                })
             return
 
         if method == "mining.authorize":
@@ -342,7 +376,7 @@ class Pool:
         if not mintime <= ntime <= int(time.time()) + 7200:
             return False, [20, "Invalid ntime", None]
 
-        key = (self.job.job_id, miner.worker, ex2_hex.lower(), ntime, nonce)
+        key = (self.job.job_id, miner.worker, ex2_hex.lower(), ntime, nonce, version_bits)
         if not self._remember_share(key):
             return False, [22, "Duplicate share", None]
 
