@@ -446,10 +446,16 @@ class Pool:
         if self.cfg.vardiff_enabled and previous:
             interval = now - previous
             nd = miner.difficulty
-            if interval < self.cfg.vardiff_target_seconds / 2:
-                nd *= 2
-            elif interval > self.cfg.vardiff_target_seconds * 2:
-                nd /= 2
+
+            # Vardiff must not react to a single lucky share by repeatedly
+            # doubling into an absurd target. Require a few accepted shares
+            # before increasing difficulty and limit each adjustment.
+            if miner.shares >= 4:
+                if interval < self.cfg.vardiff_target_seconds / 2:
+                    nd *= 2
+                elif interval > self.cfg.vardiff_target_seconds * 2:
+                    nd /= 2
+
             nd = min(self.cfg.vardiff_max, max(self.cfg.vardiff_min, nd))
             if abs(nd - miner.difficulty) / max(miner.difficulty, 1e-12) >= 0.01:
                 miner.difficulty = nd
