@@ -98,6 +98,45 @@ class CoreTests(unittest.TestCase):
             delta=0.001,
         )
 
+
+    def test_config_persistence_is_atomic_and_private(self):
+        import os
+        import tempfile
+        from app.config import Config
+
+        with tempfile.TemporaryDirectory() as tmp:
+            old = os.environ.get("CONFIG_PATH")
+            os.environ["CONFIG_PATH"] = os.path.join(tmp, "config.json")
+            try:
+                cfg = Config()
+                cfg.save_vardiff_settings(True, 30, 1000, 1, 65536)
+                self.assertTrue(os.path.exists(cfg.config_path))
+                self.assertEqual(os.stat(cfg.config_path).st_mode & 0o777, 0o600)
+                loaded = Config()
+                self.assertEqual(loaded.start_difficulty, 1000.0)
+                self.assertTrue(loaded.vardiff_enabled)
+            finally:
+                if old is None:
+                    os.environ.pop("CONFIG_PATH", None)
+                else:
+                    os.environ["CONFIG_PATH"] = old
+
+    def test_db_can_reopen_after_clean_close(self):
+        import tempfile
+        from app.db import DB
+
+        with tempfile.TemporaryDirectory() as tmp:
+            path = tmp + "/pool.sqlite3"
+            db = DB(path)
+            db.touch_worker("test", 1000, connected=True)
+            db.share("test", True, best_diff=1200, difficulty=1000)
+            db.close()
+            reopened = DB(path)
+            workers, _, _ = reopened.snapshot()
+            self.assertEqual(workers[0]["worker"], "test")
+            self.assertEqual(workers[0]["shares"], 1)
+            reopened.close()
+
     def test_cashaddr(self):
         script = decode_cashaddr("bitcoincash:qpm2qsznhks23z7629mms6s4cwef74vcwvy22gdx6a")
         self.assertTrue(script.startswith(b"\x76\xa9"))
