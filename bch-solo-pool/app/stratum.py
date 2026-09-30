@@ -169,8 +169,15 @@ class Miner:
         self.subscribed = False
         self.authorized = False
         self.difficulty = pool.start_difficulty
+        # Difficulty is applied to future jobs. Keep the difficulty that was
+        # active when each job was issued so vardiff changes cannot reject
+        # valid shares from work the miner is still finishing.
+        self.job_difficulties = {}
         self.last_share = 0.0
         self.shares = 0
+        self.first_share_time = 0.0
+        self.accepted_work = 0.0
+        self.hashrate = 0.0
 
     async def send(self, obj):
         self.writer.write((json.dumps(obj, separators=(",", ":")) + "\n").encode())
@@ -214,6 +221,7 @@ class Miner:
             })
             await self.send({"id": None, "method": "mining.set_difficulty", "params": [self.difficulty]})
             if self.pool.job:
+                self.pool.remember_job_for_miner(self)
                 await self.send({"id": None, "method": "mining.notify", "params": self.pool.job.notify(True)})
             return
 
@@ -324,12 +332,23 @@ class Pool:
     async def broadcast_job(self, clean=False):
         if not self.job:
             return
-        msg = {"id": None, "method": "mining.notify", "params": self.job.notify(clean)}
         for miner in list(self.miners):
             try:
+                self.remember_job_for_miner(miner)
+                msg = {"id": None, "method": "mining.notify", "params": self.job.notify(clean)}
                 await miner.send(msg)
             except Exception:
                 self.miners.discard(miner)
+
+    def remember_job_for_miner(self, miner):
+        """Pin the share difficulty to the job the miner was actually given."""
+        if not self.job:
+            return
+        miner.job_difficulties[self.job.job_id] = miner.difficulty
+        # Keep only a small history in case a miner submits a just-finished job.
+        if len(miner.job_difficulties) > 16:
+            for old in list(miner.job_difficulties)[:-16]:
+                miner.job_difficulties.pop(old, None)
 
     def _remember_share(self, key):
         if key in self._seen_shares:
@@ -386,9 +405,16 @@ class Pool:
         header_version = self.job.version ^ version_bits
         header = self.job.header(cb, nonce, ntime, header_version)
         digest = sha256d(header)
-        share_target = difficulty_to_target(miner.difficulty)
+
+        # A vardiff update must never retroactively change the target for a
+        # job already in the miner. Validate against the difficulty pinned to
+        # this job, not the miner's newer pending/current difficulty.
+        share_difficulty = miner.job_difficulties.get(
+            self.job.job_id, miner.difficulty
+        )
+        share_target = difficulty_to_target(share_difficulty)
         if not hash_meets_target(digest, share_target):
-            self.db.share(miner.worker, False, difficulty=miner.difficulty)
+            self.db.share(miner.worker, False, difficulty=share_difficulty)
             return False, [23, "Low difficulty share", None]
 
         block = hash_meets_target(digest, self.job.network_target)
@@ -397,7 +423,25 @@ class Pool:
         previous = miner.last_share
         miner.last_share = now
         miner.shares += 1
-        self.db.share(miner.worker, True, best_diff, difficulty=miner.difficulty)
+
+        # Estimate effective hashrate from accepted share work. Each accepted
+        # share represents approximately difficulty * 2^32 hashes. Use the
+        # difficulty the miner is currently working at, which matches ASIC
+        # firmware such as Bitaxe that applies mining.set_difficulty promptly.
+        if not miner.first_share_time:
+            miner.first_share_time = now
+        miner.accepted_work += max(miner.difficulty, 0.000001) * (2 ** 32)
+        elapsed = now - miner.first_share_time
+        if elapsed >= 1.0:
+            miner.hashrate = miner.accepted_work / elapsed
+
+        self.db.share(
+            miner.worker,
+            True,
+            best_diff,
+            hashrate=miner.hashrate,
+            difficulty=share_difficulty
+        )
 
         if self.cfg.vardiff_enabled and previous:
             interval = now - previous
