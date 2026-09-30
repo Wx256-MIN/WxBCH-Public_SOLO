@@ -26,6 +26,14 @@ class Config:
                 return env
             return saved.get(name, default)
 
+        def setting(name, default):
+            # Dashboard settings persist in config.json and override static
+            # container environment defaults once the user changes them.
+            if name in saved and saved.get(name) not in (None, ""):
+                return saved.get(name)
+            env = os.getenv(name)
+            return env if env not in (None, "") else default
+
         self.rpc_url = value("BCH_RPC_URL", "http://bitcoind:8332/")
         self.rpc_user = value("BCH_RPC_USER", "bchn")
         self.rpc_password = value("BCH_RPC_PASSWORD", "")
@@ -36,11 +44,16 @@ class Config:
         self.stratum_port = int(value("STRATUM_PORT", "3334"))
         self.web_host = value("WEB_HOST", "0.0.0.0")
         self.web_port = int(value("WEB_PORT", "8080"))
-        self.start_difficulty = float(value("START_DIFFICULTY", "1000"))
+        self.start_difficulty = float(setting("START_DIFFICULTY", "1000"))
         self.vardiff_enabled = _bool_env("VARDIFF_ENABLED", bool(saved.get("VARDIFF_ENABLED", True)))
         self.vardiff_target_seconds = float(value("VARDIFF_TARGET_SECONDS", "30"))
-        self.vardiff_min = float(value("VARDIFF_MIN", "0.001"))
+        self.vardiff_min = float(setting("VARDIFF_MIN", "0.001"))
         self.vardiff_max = float(value("VARDIFF_MAX", "1000000000"))
+        if self.vardiff_min <= 0:
+            self.vardiff_min = 0.001
+        if self.vardiff_max < self.vardiff_min:
+            self.vardiff_max = self.vardiff_min
+        self.start_difficulty = max(self.vardiff_min, min(self.vardiff_max, self.start_difficulty))
         self.coinbase_message = value("COINBASE_MESSAGE", "BCH Solo Pool")[:60]
         self.db_path = value("DB_PATH", "/data/pool.sqlite3")
         self.log_level = value("LOG_LEVEL", "INFO")
@@ -50,6 +63,31 @@ class Config:
             return json.loads(self.config_path.read_text())
         except (FileNotFoundError, OSError, ValueError):
             return {}
+
+
+    def save_pool_settings(self, start_difficulty, min_difficulty):
+        start = float(start_difficulty)
+        minimum = float(min_difficulty)
+        if minimum <= 0:
+            raise ValueError("Minimum difficulty must be greater than 0")
+        if start <= 0:
+            raise ValueError("Start difficulty must be greater than 0")
+        if minimum > self.vardiff_max:
+            raise ValueError("Minimum difficulty cannot exceed maximum difficulty")
+        if start < minimum:
+            raise ValueError("Start difficulty must be greater than or equal to minimum difficulty")
+        if start > self.vardiff_max:
+            raise ValueError("Start difficulty cannot exceed maximum difficulty")
+        saved = self._load_saved()
+        saved["START_DIFFICULTY"] = start
+        saved["VARDIFF_MIN"] = minimum
+        self.config_path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = self.config_path.with_suffix(".tmp")
+        tmp.write_text(json.dumps(saved, indent=2) + "\n")
+        os.replace(tmp, self.config_path)
+        self.start_difficulty = start
+        self.vardiff_min = minimum
+        return start, minimum
 
     @property
     def configured(self):
