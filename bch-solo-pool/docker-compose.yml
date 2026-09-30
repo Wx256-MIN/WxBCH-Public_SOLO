@@ -11,8 +11,15 @@ services:
     image: ghcr.io/wx256-min/bch-solo-pool:latest
     user: "1000:1000"
     restart: unless-stopped
-    stop_grace_period: 1m
+    stop_grace_period: 30s
     init: true
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     ports:
       # Public LAN Stratum V1 endpoint for ASIC miners.
       # Explicitly publish TCP on all host interfaces; app_proxy only handles the web UI.
