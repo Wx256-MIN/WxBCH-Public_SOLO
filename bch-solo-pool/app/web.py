@@ -106,6 +106,8 @@ class Web:
                         "start_difficulty": outer.cfg.start_difficulty,
                         "min_difficulty": outer.cfg.vardiff_min,
                         "max_difficulty": outer.cfg.vardiff_max,
+                        "vardiff_enabled": outer.cfg.vardiff_enabled,
+                        "vardiff_target_seconds": outer.cfg.vardiff_target_seconds,
                         "job_created": job.created if job else None,
                         "tx_count": len(job.tx_hex) if job else 0,
                         "coinbase_value": job.coinbase_value if job else None,
@@ -598,6 +600,7 @@ body{overflow-x:hidden}
     <div class="cardHead"><h2>Mining performance</h2><span class="sectionTag" id="syncBadge">LIVE</span></div>
     <div class="kv">
       <div class="kvItem"><span>Network difficulty</span><b id="difficulty">—</b></div>
+      <div class="kvItem"><span>Vardiff</span><b id="vardiffStatus">—</b></div>
       <div class="kvItem"><span>Network hashrate</span><b id="networkHashrate">—</b></div>
       <div class="kvItem"><span>Pool hashrate</span><b id="poolHashrate">—</b></div>
       <div class="kvItem"><span>Best share difficulty</span><b id="bestDiff">—</b></div>
@@ -733,6 +736,7 @@ async function refreshData(){
   $('heroHash').textContent=fmtHash(poolHash);$('heroMiners').textContent=fmtNum(x.miners_connected)+' connected';$('heroJob').textContent=x.job_id||'—';
   $('stratum').textContent='stratum+tcp://'+location.hostname+':3334';
   $('difficulty').textContent=fmtDifficulty(m.difficulty);
+    $('vardiffStatus').textContent=x.vardiff_enabled===false?'OFF':('ON · '+fmtNum(x.vardiff_target_seconds)+'s');
     $('networkHashrate').textContent=fmtHash(m.networkhashps);$('poolHashrate').textContent=fmtHash(poolHash);
   $('bestDiff').textContent=workers.length?Math.max(...workers.map(w=>Number(w.best_diff||0))).toFixed(6):'—';$('accepted').textContent=fmtNum(accepted);$('rejected').textContent=fmtNum(rejected)+' ('+(total?(rejected/total*100).toFixed(2):'0')+'%)';
   $('reward').textContent=x.coinbase_value?((Number(x.coinbase_value)/1e8).toFixed(8)+' BCH'):'—';$('jobTxs').textContent=fmtNum(x.tx_count);$('target').textContent=x.network_target?'0x'+x.network_target.slice(0,18)+'…':'—';
