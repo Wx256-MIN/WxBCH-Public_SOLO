@@ -128,18 +128,19 @@ class Web:
                         changed = 0
                         if outer.pool is not None:
                             for miner in list(outer.pool.miners):
-                                if miner.difficulty < minimum:
-                                    miner.difficulty = start if start >= minimum else minimum
+                                new_difficulty = max(minimum, start)
+                                if abs(miner.difficulty - new_difficulty) > 1e-12:
+                                    miner.difficulty = new_difficulty
                                     outer.pool.db.touch_worker(miner.worker, miner.difficulty)
                                     try:
-                                        awaitable = miner.send({
+                                        coroutine = miner.send({
                                             "id": None,
                                             "method": "mining.set_difficulty",
                                             "params": [miner.difficulty]
                                         })
                                         if getattr(outer, "loop", None):
                                             future = asyncio.run_coroutine_threadsafe(
-                                                awaitable, outer.loop
+                                                coroutine, outer.loop
                                             )
                                             future.result(timeout=5)
                                         changed += 1
