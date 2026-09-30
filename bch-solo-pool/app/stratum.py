@@ -723,15 +723,28 @@ class Pool:
 
         if block:
             block_hex = job.block_hex(cb, nonce, ntime, header_version)
-            result = await asyncio.to_thread(self.rpc.submit_block, block_hex)
+            result = None
+            last_error = None
+            # submitblock is safe to retry for the exact same candidate.
+            for attempt in range(3):
+                try:
+                    result = await asyncio.to_thread(self.rpc.submit_block, block_hex)
+                    last_error = None
+                    break
+                except Exception as exc:
+                    last_error = exc
+                    log.exception("block submission attempt %s/3 failed height=%s worker=%s",
+                                  attempt + 1, job.height, miner.worker)
+                    if attempt < 2:
+                        await asyncio.sleep(0.5 * (attempt + 1))
+
             h = digest[::-1].hex()
-            self.db.block(job.height, job.job_id, miner.worker, h, str(result))
-            self.db.event("block", miner.worker, f"height={job.height} hash={h} result={result}")
-            log.warning(
-                "BLOCK CANDIDATE: height=%s worker=%s hash=%s submit=%s",
-                job.height, miner.worker, h, result
-            )
-            if result is None or str(result).lower() == "duplicate":
+            outcome = str(result) if last_error is None else "RPC error: " + str(last_error)
+            self.db.block(job.height, job.job_id, miner.worker, h, outcome)
+            self.db.event("block", miner.worker, f"height={job.height} hash={h} result={outcome}")
+            log.warning("BLOCK CANDIDATE: height=%s worker=%s hash=%s submit=%s",
+                        job.height, miner.worker, h, outcome)
+            if last_error is None and (result is None or str(result).lower() == "duplicate"):
                 await asyncio.sleep(0.25)
                 await self.refresh_job("block-submit", only_if_new_block=True)
 
