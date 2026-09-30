@@ -38,6 +38,19 @@ class CoreTests(unittest.TestCase):
         self.assertEqual(len(j.header(cb, 0)), 80)
         self.assertEqual(len(bytes.fromhex(j.block_hex(cb, 0))), 80 + 1 + len(cb))
 
+
+    def test_stratum_notify_uses_uint32_hex_for_version_and_ntime(self):
+        t = {
+            "height": 900000, "previousblockhash": "11" * 32,
+            "version": 0x20000002, "bits": "1d00ffff", "curtime": 1700000000,
+            "mintime": 1699990000, "coinbasevalue": 1000, "transactions": []
+        }
+        script = decode_cashaddr("bitcoincash:qpm2qsznhks23z7629mms6s4cwef74vcwvy22gdx6a")
+        j = Job(t, script, "test")
+        params = j.notify()
+        self.assertEqual(params[5], "20000002")
+        self.assertEqual(params[7], "6553f100")
+
     def test_merkle_one(self):
         h = sha256d(b"abc")
         self.assertEqual(merkle_root([h]), h)
