@@ -21,10 +21,13 @@ class Config:
         saved = self._load_saved()
 
         def value(name, default):
+            # Explicit values saved from the dashboard take precedence over
+            # container defaults. This makes the editable setup persistent
+            # across restarts while still using Umbrel exports on first launch.
+            if name in saved and saved.get(name) not in (None, ""):
+                return saved.get(name)
             env = os.getenv(name)
-            if env not in (None, ""):
-                return env
-            return saved.get(name, default)
+            return env if env not in (None, "") else default
 
         def setting(name, default):
             # Dashboard settings persist in config.json and override static
