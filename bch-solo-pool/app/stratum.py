@@ -149,6 +149,10 @@ class Miner:
         self.worker = "unknown"
         self.ex1 = os.urandom(4)
         self.ex2_size = 4
+        # BIP310 version-rolling is used by Bitaxe/AxeOS and some Avalon
+        # firmware. The miner submits the XOR delta from the job version.
+        self.version_mask = 0x1fffe000
+        self.version_rolling = False
         self.subscribed = False
         self.authorized = False
         self.difficulty = pool.start_difficulty
@@ -200,9 +204,34 @@ class Miner:
                 await self.send({"id": None, "method": "mining.notify", "params": self.pool.job.notify(True)})
             return
 
-        if method in ("mining.authorize", "mining.configure"):
-            if method == "mining.authorize":
-                self.worker = str(params[0]) if params else "worker"
+        if method == "mining.configure":
+            # BIP310: advertise version rolling. Bitaxe/AxeOS sends the
+            # sixth mining.submit parameter when it rolls the header version.
+            extensions = params[0] if params else []
+            requested = {}
+            if len(params) > 1 and isinstance(params[1], dict):
+                requested = params[1]
+            if isinstance(extensions, list) and "version-rolling" in extensions:
+                mask = self.version_mask
+                requested_mask = requested.get("version-rolling.mask")
+                if isinstance(requested_mask, str):
+                    try:
+                        mask &= int(requested_mask, 16)
+                    except ValueError:
+                        pass
+                self.version_mask = mask
+                self.version_rolling = True
+                result = {
+                    "version-rolling": True,
+                    "version-rolling.mask": f"{mask:08x}",
+                }
+            else:
+                result = {"version-rolling": False}
+            await self.send({"id": mid, "result": result, "error": None})
+            return
+
+        if method == "mining.authorize":
+            self.worker = str(params[0]) if params else "worker"
             self.authorized = True
             self.pool.db.touch_worker(self.worker, self.difficulty)
             await self.send({"id": mid, "result": True, "error": None})
@@ -282,6 +311,7 @@ class Pool:
             return False, [20, "Malformed submit", None]
 
         worker, job_id, ex2_hex, ntime_hex, nonce_hex = map(str, params[:5])
+        version_bits_hex = str(params[5]) if len(params) >= 6 else None
         if worker != miner.worker:
             return False, [21, "Worker mismatch", None]
         if job_id != self.job.job_id:
@@ -291,8 +321,14 @@ class Pool:
             ex2 = bytes.fromhex(ex2_hex)
             ntime = int(ntime_hex, 16)
             nonce = int(nonce_hex, 16)
+            version_bits = int(version_bits_hex, 16) if version_bits_hex is not None else 0
         except ValueError:
             return False, [20, "Invalid hex", None]
+
+        if version_bits & ~miner.version_mask:
+            return False, [20, "Invalid version rolling bits", None]
+        if version_bits_hex is not None and not miner.version_rolling:
+            return False, [20, "Version rolling not negotiated", None]
 
         if len(ex2) != miner.ex2_size or not 0 <= nonce <= 0xffffffff:
             return False, [20, "Invalid extranonce2/nonce", None]
@@ -305,7 +341,8 @@ class Pool:
             return False, [22, "Duplicate share", None]
 
         cb = self.job.coinbase(miner.ex1, ex2)
-        header = self.job.header(cb, nonce, ntime)
+        header_version = self.job.version ^ version_bits
+        header = self.job.header(cb, nonce, ntime, header_version)
         digest = sha256d(header)
         share_target = difficulty_to_target(miner.difficulty)
         if not hash_meets_target(digest, share_target):
@@ -337,7 +374,7 @@ class Pool:
                     pass
 
         if block:
-            block_hex = self.job.block_hex(cb, nonce, ntime)
+            block_hex = self.job.block_hex(cb, nonce, ntime, header_version)
             result = await asyncio.to_thread(self.rpc.submit_block, block_hex)
             h = digest[::-1].hex()
             self.db.block(self.job.height, self.job.job_id, miner.worker, h, str(result))
