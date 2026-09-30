@@ -13,10 +13,10 @@ A self-hosted Bitcoin Cash (BCH) Solo Stratum V1 pool for BCHN and SHA-256 ASIC 
 5. Point your ASIC miners at `stratum+tcp://UMBREL-IP:3334`.
 6. Give each miner a unique worker suffix and password `x`.
 
-Example for Umbrel `192.168.1.5`:
+Example for Umbrel `192.168.50.100`:
 ```text
-Dashboard: http://192.168.1.5:3567
-Stratum:   stratum+tcp://192.168.1.5:3334
+Dashboard: http://192.168.50.100:3567
+Stratum:   stratum+tcp://192.168.50.100:3334
 ```
 
 ## Install on UmbrelOS
@@ -84,14 +84,14 @@ All miners use Stratum V1 on TCP port `3334`.
 
 Example worker:
 ```text
-Pool URL: stratum+tcp://192.168.1.5:3334
+Pool URL: stratum+tcp://192.168.50.100:3334
 Worker:   bitcoincash:qYOURADDRESS.bitaxe602
 Password: x
 ```
 
 For the Nano 3S:
 ```text
-Pool URL: stratum+tcp://192.168.1.5:3334
+Pool URL: stratum+tcp://192.168.50.100:3334
 Worker:   bitcoincash:qYOURADDRESS.nano3s
 Password: x
 ```
