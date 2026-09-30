@@ -419,7 +419,7 @@ class Miner:
             return
 
         if method == "client.get_version":
-            await self.send({"id": mid, "result": "bch-solo-pool/1.7.0", "error": None})
+            await self.send({"id": mid, "result": "bch-solo-pool/1.7.1", "error": None})
             return
 
         if method == "mining.capabilities":
@@ -439,7 +439,7 @@ class Miner:
             return
 
         if method == "mining.get_version":
-            await self.send({"id": mid, "result": "bch-solo-pool/1.7.0", "error": None})
+            await self.send({"id": mid, "result": "bch-solo-pool/1.7.1", "error": None})
             return
 
         if mid is not None:
