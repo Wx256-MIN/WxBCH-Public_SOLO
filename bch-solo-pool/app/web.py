@@ -51,6 +51,9 @@ class Web:
                         "rpc_user": outer.cfg.rpc_user,
                         "zmq_url": outer.cfg.zmq_url,
                         "payout_address": outer.cfg.payout_address,
+                        "start_difficulty": outer.cfg.start_difficulty,
+                        "min_difficulty": outer.cfg.vardiff_min,
+                        "max_difficulty": outer.cfg.vardiff_max,
                     }))
                     return
 
@@ -109,6 +112,46 @@ class Web:
                             self._send(200, json.dumps({"ok": True, "message": "New mining job created"}))
                             return
                         raise ValueError("Unknown dashboard action")
+                    except Exception as exc:
+                        self._send(400, json.dumps({"ok": False, "error": str(exc)}))
+                    return
+
+                if path == "/api/pool-settings":
+                    try:
+                        body = self._json_body()
+                        start = float(body.get("start_difficulty"))
+                        minimum = float(body.get("min_difficulty"))
+                        start, minimum = outer.cfg.save_pool_settings(start, minimum)
+
+                        # Minimum difficulty is a live floor. If an already
+                        # connected miner is below it, raise that miner now.
+                        changed = 0
+                        if outer.pool is not None:
+                            for miner in list(outer.pool.miners):
+                                if miner.difficulty < minimum:
+                                    miner.difficulty = start if start >= minimum else minimum
+                                    outer.pool.db.touch_worker(miner.worker, miner.difficulty)
+                                    try:
+                                        awaitable = miner.send({
+                                            "id": None,
+                                            "method": "mining.set_difficulty",
+                                            "params": [miner.difficulty]
+                                        })
+                                        if getattr(outer, "loop", None):
+                                            future = asyncio.run_coroutine_threadsafe(
+                                                awaitable, outer.loop
+                                            )
+                                            future.result(timeout=5)
+                                        changed += 1
+                                    except Exception:
+                                        pass
+                        self._send(200, json.dumps({
+                            "ok": True,
+                            "message": "Difficulty settings saved",
+                            "start_difficulty": start,
+                            "min_difficulty": minimum,
+                            "miners_updated": changed,
+                        }))
                     except Exception as exc:
                         self._send(400, json.dumps({"ok": False, "error": str(exc)}))
                     return
@@ -422,7 +465,14 @@ body{overflow-x:hidden}
   <div class="field"><label>ZMQ hashblock URL</label><input id="zmq" autocomplete="off" autocapitalize="none" spellcheck="false"></div>
  </div>
  <div class="field"><label>BCH payout address</label><input id="payout" autocomplete="off" autocapitalize="none" spellcheck="false"></div>
- <div class="heroActions"><button class="btn primary" onclick="saveSetup()">Save & restart</button><button class="btn" onclick="clearSetupFields()">Clear</button></div>
+
+ <div class="cardHead" style="margin-top:18px"><h2>Mining difficulty</h2><span class="muted">Share target settings</span></div>
+ <div class="split">
+  <div class="field"><label>Start difficulty</label><input id="startDiff" type="number" min="0.000001" step="any" placeholder="1000"></div>
+  <div class="field"><label>Minimum difficulty</label><input id="minDiff" type="number" min="0.000001" step="any" placeholder="0.001"></div>
+ </div>
+ <p class="muted" style="font-size:10px">Start difficulty is used for new miner sessions. Minimum difficulty is the lowest vardiff target the pool will use. Start difficulty must be greater than or equal to minimum difficulty.</p>
+ <div class="heroActions"><button class="btn primary" onclick="saveSetup()">Save & restart</button><button class="btn" onclick="savePoolSettings()">Apply difficulty</button><button class="btn" onclick="clearSetupFields()">Clear</button></div>
  <p id="setupmsg" class="muted"></p>
 </section>
 
@@ -531,13 +581,35 @@ async function api(url,opt){const r=await fetch(url,Object.assign({cache:'no-sto
 async function setupState(){
  try{const c=await api('/api/config');if(!c.configured){await showSetup(true)}else{$('setup').classList.remove('visible');$('dash').classList.remove('hidden')}return true}catch(e){$('dash').classList.remove('hidden');return true}
 }
-async function showSetup(loadSaved=true){$('setup').classList.add('visible');$('dash').classList.add('hidden');if(!loadSaved)return;try{const c=await api('/api/config');$('rpc').value=c.rpc_url||'';$('user').value=c.rpc_user||'';$('zmq').value=c.zmq_url||'';$('payout').value=c.payout_address||'';$('pass').value='';}catch(e){}}
+async function showSetup(loadSaved=true){
+ $('setup').classList.add('visible');$('dash').classList.add('hidden');
+ if(!loadSaved)return;
+ try{
+  const c=await api('/api/config');
+  $('rpc').value=c.rpc_url||'';$('user').value=c.rpc_user||'';$('zmq').value=c.zmq_url||'';$('payout').value=c.payout_address||'';$('pass').value='';
+  $('startDiff').value=c.start_difficulty??1000;
+  $('minDiff').value=c.min_difficulty??0.001;
+ }catch(e){}
+}
 function hideSetup(){$('setup').classList.remove('visible');$('dash').classList.remove('hidden')}
 function clearSetupFields(){['rpc','user','pass','zmq','payout'].forEach(x=>$(x).value='');$('rpc').focus()}
 async function saveSetup(){
  const body={BCH_RPC_URL:$('rpc').value.trim(),BCH_RPC_USER:$('user').value.trim(),BCH_RPC_PASSWORD:$('pass').value,BCH_ZMQ_URL:$('zmq').value.trim(),BCH_PAYOUT_ADDRESS:$('payout').value.trim()};
  $('setupmsg').textContent='Testing RPC and saving…';
- try{const x=await api('/api/setup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});$('setupmsg').textContent=x.ok?x.message:'Error: '+x.error}catch(e){$('setupmsg').textContent='Error: '+e}
+ try{
+  const x=await api('/api/setup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  if(x.ok){await savePoolSettings(true);$('setupmsg').textContent=x.message}else $('setupmsg').textContent='Error: '+x.error
+ }catch(e){$('setupmsg').textContent='Error: '+e}
+}
+async function savePoolSettings(silent=false){
+ const start=Number($('startDiff').value), minimum=Number($('minDiff').value);
+ if(!isFinite(start)||!isFinite(minimum)||start<=0||minimum<=0){$('setupmsg').textContent='Error: enter valid positive difficulty values';return false}
+ try{
+  const x=await api('/api/pool-settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({start_difficulty:start,min_difficulty:minimum})});
+  if(!x.ok){$('setupmsg').textContent='Error: '+x.error;return false}
+  if(!silent)$('setupmsg').textContent=x.message+(x.miners_updated?' · Updated '+x.miners_updated+' miner(s)':'');
+  return true
+ }catch(e){$('setupmsg').textContent='Error: '+e;return false}
 }
 function renderWorkers(workers){
  $('workerCount').textContent=workers.length+' worker'+(workers.length===1?'':'s');
