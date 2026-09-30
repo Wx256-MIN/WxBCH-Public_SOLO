@@ -62,10 +62,16 @@ class Web:
                     if outer.rpc is not None:
                         try:
                             info = outer.rpc.get_blockchain_info()
-                            mining = outer.rpc.get_mining_info()
-                            network = outer.rpc.get_network_info()
                         except Exception as exc:
                             info = {"error": str(exc)}
+                        try:
+                            mining = outer.rpc.get_mining_info()
+                        except Exception:
+                            mining = {}
+                        try:
+                            network = outer.rpc.get_network_info()
+                        except Exception:
+                            network = {}
                     workers, blocks, events = outer.db.snapshot()
                     authorized_miners = (
                         sum(1 for miner in outer.pool.miners if miner.authorized)
