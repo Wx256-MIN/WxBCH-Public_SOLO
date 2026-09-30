@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+import signal
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import threading
 from urllib.parse import urlparse
@@ -291,7 +292,9 @@ class Web:
                     def restart():
                         import time
                         time.sleep(0.5)
-                        os._exit(0)
+                        # Ask PID 1 to perform the normal SIGTERM cleanup path
+                        # instead of abruptly terminating the process.
+                        os.kill(os.getpid(), signal.SIGTERM)
 
                     threading.Thread(target=restart, daemon=True).start()
                 except Exception as exc:
