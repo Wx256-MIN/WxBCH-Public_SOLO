@@ -73,12 +73,27 @@ class Web:
                         except Exception:
                             network = {}
                     workers, blocks, events = outer.db.snapshot()
-                    connected_workers = set()
+                    live = {}
                     if outer.pool is not None:
-                        for miner in outer.pool.miners:
-                            if miner.authorized and miner.worker not in ("", "unknown", "worker"):
-                                connected_workers.add(miner.worker)
-                    authorized_miners = len(connected_workers)
+                        for miner in list(outer.pool.miners):
+                            if not miner.authorized or miner.worker in ("", "unknown", "worker"):
+                                continue
+                            item = live.setdefault(miner.worker, {
+                                "hashrate": 0.0,
+                                "difficulty": miner.difficulty,
+                                "last_share": 0.0,
+                            })
+                            item["hashrate"] += miner.live_hashrate()
+                            item["difficulty"] = miner.difficulty
+                            item["last_share"] = max(item["last_share"], miner.last_share)
+                    workers = [w for w in workers if w.get("worker") in live]
+                    for w in workers:
+                        item = live[w["worker"]]
+                        w["hashrate"] = item["hashrate"]
+                        w["difficulty"] = item["difficulty"]
+                        if item["last_share"]:
+                            w["last_seen"] = item["last_share"]
+                    authorized_miners = len(live)
                     job = outer.pool.job if outer.pool is not None else None
                     obj = {
                         "setup_required": not outer.cfg.configured,
