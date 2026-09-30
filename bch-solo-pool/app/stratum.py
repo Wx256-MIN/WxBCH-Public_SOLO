@@ -608,6 +608,14 @@ class Pool:
         if job.prevhash != self.job.prevhash or job.height != self.job.height:
             return False, [21, "Stale share", None]
 
+        now_mono = time.monotonic()
+        if now_mono - miner.submit_window_start >= 1.0:
+            miner.submit_window_start = now_mono
+            miner.submit_window_count = 0
+        miner.submit_window_count += 1
+        if miner.submit_window_count > miner.max_submits_per_second:
+            return False, [20, "Submitting too fast", None]
+
         try:
             ex2 = bytes.fromhex(ex2_hex)
             ntime = int(ntime_hex, 16)
@@ -624,10 +632,10 @@ class Pool:
         if len(ex2) != miner.ex2_size or not 0 <= nonce <= 0xffffffff:
             return False, [20, "Invalid extranonce2/nonce", None]
         mintime = int(job.template.get("mintime", 0))
-        # mining.submit ntime is a normal uint32 hex value, matching the
-        # ntime field advertised by mining.notify. The block header later
-        # serializes it as little-endian bytes.
-        if not mintime <= ntime <= int(time.time()) + 7200:
+        # Keep rolling time bounded relative to the advertised job while
+        # allowing normal ASIC clock rolling and future timestamps.
+        lower_ntime = max(mintime, int(job.ntime) - 600)
+        if not lower_ntime <= ntime <= int(time.time()) + 7200:
             return False, [20, "Invalid ntime", None]
 
         key = (job.job_id, miner.worker, ex2_hex.lower(), ntime, nonce, version_bits)
