@@ -178,6 +178,7 @@ class Miner:
         self.first_share_time = 0.0
         self.accepted_work = 0.0
         self.hashrate = 0.0
+        self.share_samples = []
 
     async def send(self, obj):
         self.writer.write((json.dumps(obj, separators=(",", ":")) + "\n").encode())
@@ -205,6 +206,8 @@ class Miner:
             log.exception("miner connection error")
         finally:
             self.pool.miners.discard(self)
+            if self.authorized and self.worker != "unknown":
+                self.pool.db.set_worker_connected(self.worker, False)
             self.pool.db.event("disconnect", self.worker, "")
 
     async def handle(self, msg):
@@ -280,7 +283,7 @@ class Miner:
         if method == "mining.authorize":
             self.worker = str(params[0]) if params else "worker"
             self.authorized = True
-            self.pool.db.touch_worker(self.worker, self.difficulty)
+            self.pool.db.touch_worker(self.worker, self.difficulty, connected=True)
             await self.send({"id": mid, "result": True, "error": None})
             return
 
@@ -424,16 +427,22 @@ class Pool:
         miner.last_share = now
         miner.shares += 1
 
-        # Estimate effective hashrate from accepted share work. Each accepted
-        # share represents approximately difficulty * 2^32 hashes. Use the
-        # difficulty the miner is currently working at, which matches ASIC
-        # firmware such as Bitaxe that applies mining.set_difficulty promptly.
+        # Estimate effective hashrate from a rolling window of accepted
+        # shares. Use the difficulty pinned to each submitted job; using the
+        # miner's current difficulty badly distorts hashrate after vardiff
+        # changes. A rolling window also recovers quickly after reconnects.
+        miner.share_samples.append((now, max(share_difficulty, 0.000001)))
+        if len(miner.share_samples) > 12:
+            miner.share_samples.pop(0)
+        if len(miner.share_samples) >= 2:
+            first_time = miner.share_samples[0][0]
+            elapsed = now - first_time
+            if elapsed >= 1.0:
+                work = sum(d * (2 ** 32) for _, d in miner.share_samples[1:])
+                miner.hashrate = work / elapsed
         if not miner.first_share_time:
             miner.first_share_time = now
-        miner.accepted_work += max(miner.difficulty, 0.000001) * (2 ** 32)
-        elapsed = now - miner.first_share_time
-        if elapsed >= 1.0:
-            miner.hashrate = miner.accepted_work / elapsed
+        miner.accepted_work = sum(d * (2 ** 32) for _, d in miner.share_samples)
 
         self.db.share(
             miner.worker,
