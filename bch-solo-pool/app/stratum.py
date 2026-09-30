@@ -167,6 +167,7 @@ class Miner:
         # firmware. The miner submits the XOR delta from the job version.
         self.version_mask = 0x1fffe000
         self.version_rolling = False
+        self.minimum_difficulty = 0.0
         self.subscribed = False
         self.authorized = False
         self.difficulty = pool.start_difficulty
@@ -233,35 +234,66 @@ class Miner:
             return
 
         if method == "mining.configure":
-            # BIP310: advertise version rolling. Bitaxe/AxeOS sends the
-            # sixth mining.submit parameter when it rolls the header version.
+            # BIP310 extension negotiation. We support version rolling,
+            # minimum-difficulty, subscribe-extranonce and info.
             extensions = params[0] if params else []
-            requested = {}
-            if len(params) > 1 and isinstance(params[1], dict):
-                requested = params[1]
-            if isinstance(extensions, list) and "version-rolling" in extensions:
+            requested = params[1] if len(params) > 1 and isinstance(params[1], dict) else {}
+            if not isinstance(extensions, list):
+                extensions = []
+
+            result = {}
+
+            if "version-rolling" in extensions:
                 mask = self.version_mask
                 requested_mask = requested.get("version-rolling.mask")
                 if isinstance(requested_mask, str):
                     try:
                         mask &= int(requested_mask, 16)
-                    except ValueError:
-                        pass
-                self.version_mask = mask
-                self.version_rolling = True
-                result = {
-                    "version-rolling": True,
-                    "version-rolling.mask": f"{mask:08x}",
-                }
-                await self.send({"id": mid, "result": result, "error": None})
+                    except (TypeError, ValueError):
+                        mask = 0
+                self.version_mask = mask & 0xffffffff
+                self.version_rolling = bool(self.version_mask)
+                result["version-rolling"] = self.version_rolling
+                result["version-rolling.mask"] = f"{self.version_mask:08x}"
+            else:
+                result["version-rolling"] = False
+
+            if "minimum-difficulty" in extensions:
+                try:
+                    self.minimum_difficulty = max(
+                        0.0, float(requested.get("minimum-difficulty.value", 0))
+                    )
+                except (TypeError, ValueError):
+                    self.minimum_difficulty = 0.0
+                result["minimum-difficulty"] = True
+                if self.minimum_difficulty:
+                    self.difficulty = min(
+                        self.pool.cfg.vardiff_max,
+                        max(self.difficulty, self.minimum_difficulty)
+                    )
+
+            if "subscribe-extranonce" in extensions:
+                # extranonce1 is stable for this connection, so no
+                # mining.set_extranonce notification is required.
+                result["subscribe-extranonce"] = True
+
+            if "info" in extensions:
+                result["info"] = True
+
+            await self.send({"id": mid, "result": result, "error": None})
+
+            if self.version_rolling:
                 await self.send({
                     "id": None,
                     "method": "mining.set_version_mask",
-                    "params": [f"{mask:08x}"]
+                    "params": [f"{self.version_mask:08x}"]
                 })
-            else:
-                result = {"version-rolling": False}
-                await self.send({"id": mid, "result": result, "error": None})
+            if self.minimum_difficulty > 0 and self.shares == 0:
+                await self.send({
+                    "id": None,
+                    "method": "mining.set_difficulty",
+                    "params": [self.difficulty]
+                })
             return
 
         if method == "mining.suggest_difficulty":
@@ -272,16 +304,44 @@ class Miner:
             if suggested > 0 and self.shares == 0 and self.pool.cfg.vardiff_enabled:
                 self.difficulty = max(
                     self.pool.cfg.vardiff_min,
+                    self.minimum_difficulty,
                     min(self.pool.cfg.vardiff_max, suggested)
                 )
                 self.pool.db.touch_worker(self.worker, self.difficulty)
-            await self.send({"id": mid, "result": True, "error": None})
-            if suggested > 0 and self.shares == 0 and self.pool.cfg.vardiff_enabled:
                 await self.send({
                     "id": None,
                     "method": "mining.set_difficulty",
                     "params": [self.difficulty]
                 })
+            if mid is not None:
+                await self.send({"id": mid, "result": True, "error": None})
+            return
+
+        if method == "mining.suggest_target":
+            try:
+                target_hex = str(params[0]).strip().lower()
+                if target_hex.startswith("0x"):
+                    target_hex = target_hex[2:]
+                target = int(target_hex, 16)
+                if target <= 0 or target > (1 << 256) - 1:
+                    raise ValueError
+                suggested = target_to_difficulty(target)
+            except (IndexError, TypeError, ValueError):
+                suggested = 0.0
+            if suggested > 0 and self.shares == 0 and self.pool.cfg.vardiff_enabled:
+                self.difficulty = max(
+                    self.pool.cfg.vardiff_min,
+                    self.minimum_difficulty,
+                    min(self.pool.cfg.vardiff_max, suggested)
+                )
+                self.pool.db.touch_worker(self.worker, self.difficulty)
+                await self.send({
+                    "id": None,
+                    "method": "mining.set_difficulty",
+                    "params": [self.difficulty]
+                })
+            if mid is not None:
+                await self.send({"id": mid, "result": True, "error": None})
             return
 
         if method == "mining.authorize":
@@ -305,8 +365,42 @@ class Miner:
             await self.send({"id": mid, "result": True, "error": None})
             return
 
+        if method == "mining.get_transactions":
+            job_id = str(params[0]) if params else ""
+            requested_ids = params[1] if len(params) > 1 and isinstance(params[1], list) else []
+            if not self.pool.job or job_id != self.pool.job.job_id:
+                await self.send({"id": mid, "result": [], "error": [21, "Job not found", None]})
+                return
+            tx_map = {
+                str(item.get("txid", "")).lower(): str(item.get("data", ""))
+                for item in self.pool.job.template.get("transactions", [])
+            }
+            result = [tx_map[x.lower()] for x in requested_ids if str(x).lower() in tx_map]
+            await self.send({"id": mid, "result": result, "error": None})
+            return
+
+        if method == "client.get_version":
+            await self.send({"id": mid, "result": "bch-solo-pool/1.6.2", "error": None})
+            return
+
+        if method == "mining.capabilities":
+            await self.send({
+                "id": mid,
+                "result": {
+                    "mining.configure": True,
+                    "mining.extranonce.subscribe": True,
+                    "mining.get_transactions": True,
+                    "mining.ping": True,
+                    "mining.suggest_difficulty": True,
+                    "mining.suggest_target": True,
+                    "version-rolling": True
+                },
+                "error": None
+            })
+            return
+
         if method == "mining.get_version":
-            await self.send({"id": mid, "result": "bch-solo-pool/1.1", "error": None})
+            await self.send({"id": mid, "result": "bch-solo-pool/1.6.2", "error": None})
             return
 
         if mid is not None:
@@ -484,7 +578,14 @@ class Pool:
             return False, [22, "Duplicate share", None]
 
         cb = self.job.coinbase(miner.ex1, ex2)
-        header_version = self.job.version ^ version_bits
+        if miner.version_rolling:
+            # BIP310: replace only the negotiated rolling bits.
+            header_version = (
+                (self.job.version & ~miner.version_mask)
+                | (version_bits & miner.version_mask)
+            )
+        else:
+            header_version = self.job.version
         header = self.job.header(cb, nonce, ntime, header_version)
         digest = sha256d(header)
 
@@ -545,7 +646,10 @@ class Pool:
                 elif interval > self.cfg.vardiff_target_seconds * 2:
                     nd /= 2
 
-            nd = min(self.cfg.vardiff_max, max(self.cfg.vardiff_min, nd))
+            nd = min(
+                self.cfg.vardiff_max,
+                max(self.cfg.vardiff_min, miner.minimum_difficulty, nd)
+            )
             if abs(nd - miner.difficulty) / max(miner.difficulty, 1e-12) >= 0.01:
                 miner.difficulty = nd
                 self.db.touch_worker(miner.worker, nd)
