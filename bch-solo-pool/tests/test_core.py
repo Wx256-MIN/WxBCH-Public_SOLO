@@ -82,7 +82,7 @@ class CoreTests(unittest.TestCase):
         script = decode_cashaddr("bitcoincash:qpm2qsznhks23z7629mms6s4cwef74vcwvy22gdx6a")
         self.assertTrue(script.startswith(b"\x76\xa9"))
 
-    def test_rpc_txid_is_reversed_for_internal_merkle_hash(self):
+    def test_rpc_txid_is_little_endian_for_internal_merkle_hash(self):
         txid = "00" * 31 + "01"
         t = {
             "height": 900000, "previousblockhash": "11" * 32,
@@ -92,7 +92,7 @@ class CoreTests(unittest.TestCase):
         }
         script = decode_cashaddr("bitcoincash:qpm2qsznhks23z7629mms6s4cwef74vcwvy22gdx6a")
         j = Job(t, script, "test")
-        self.assertEqual(j.tx_hashes[0], bytes.fromhex(txid)[::-1])
+        self.assertEqual(j.tx_hashes[0], bytes.fromhex(txid))
 
 
 if __name__ == "__main__":
