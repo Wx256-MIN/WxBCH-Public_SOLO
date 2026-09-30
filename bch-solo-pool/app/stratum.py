@@ -59,9 +59,10 @@ class Job:
         self.network_target = encode_compact_target(self.bits)
         self.created = time.time()
         self.tx_hex = [x["data"] for x in template.get("transactions", [])]
-        # RPC txid is displayed big-endian. Stratum merkle branches use the
-        # internal/little-endian transaction hash byte order.
-        self.tx_hashes = [bytes.fromhex(x["txid"])[::-1] for x in template.get("transactions", [])]
+        # BCHN getblocktemplate returns txid/hash in little-endian
+        # hexadecimal. Merkle branches also use that internal byte order,
+        # so do not reverse the txid here.
+        self.tx_hashes = [bytes.fromhex(x["txid"]) for x in template.get("transactions", [])]
         self.merkle_branch = self._branches(self.tx_hashes)
         self.payout_script = payout_script
         self.coinbase_value = int(template["coinbasevalue"])
