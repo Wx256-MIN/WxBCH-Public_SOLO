@@ -191,20 +191,49 @@ class Miner:
         # Highest share difficulty reached during this TCP session.
         self.session_best_diff = 0.0
         self.share_samples = []
+        self.share_time_ema = None
         self.authorized_at = 0.0
+        self.send_lock = asyncio.Lock()
+        self.closed = False
+        self.handshake_timeout = 30.0
 
     async def send(self, obj):
-        self.writer.write((json.dumps(obj, separators=(",", ":")) + "\n").encode())
-        await self.writer.drain()
+        if self.closed:
+            raise ConnectionError("miner connection is closed")
+        data = (json.dumps(obj, separators=(",", ":")) + "\n").encode()
+        async with self.send_lock:
+            if self.closed:
+                raise ConnectionError("miner connection is closed")
+            self.writer.write(data)
+            await self.writer.drain()
+
+    async def close(self):
+        if self.closed:
+            return
+        self.closed = True
+        try:
+            self.writer.close()
+            await self.writer.wait_closed()
+        except Exception:
+            pass
 
     async def run(self):
         self.pool.miners.add(self)
         try:
+            handshake_deadline = time.monotonic() + self.handshake_timeout
             while True:
-                line = await self.reader.readline()
+                if not (self.subscribed or self.authorized):
+                    remaining = handshake_deadline - time.monotonic()
+                    if remaining <= 0:
+                        log.warning("miner handshake timeout: %s", self.worker)
+                        break
+                    line = await asyncio.wait_for(self.reader.readline(), remaining)
+                else:
+                    line = await self.reader.readline()
                 if not line:
                     break
                 if len(line) > 65536:
+                    log.warning("miner sent oversized Stratum message")
                     break
                 try:
                     msg = json.loads(line)
@@ -222,6 +251,7 @@ class Miner:
             if self.authorized and self.worker != "unknown":
                 self.pool.update_worker_connection(self.worker)
             self.pool.db.event("disconnect", self.worker, "")
+            await self.close()
 
     async def handle(self, msg):
         method = msg.get("method")
@@ -467,16 +497,6 @@ class Pool:
         )
         self.db.set_worker_connected(worker, connected)
 
-    async def cleanup_inactive_workers(self):
-        """Legacy no-op kept for compatibility with older callers.
-        
-        A connected miner is not removed merely because it has not found a
-        share yet. High-difficulty workers can legitimately go long periods
-        without a share; the TCP connection itself is the authoritative
-        liveness signal.
-        """
-        return
-
     async def refresh_job(self, reason="poll", only_if_new_block=False):
         try:
             # Serialize template fetches so ZMQ and fallback recovery cannot
@@ -507,19 +527,28 @@ class Pool:
     async def broadcast_job(self, clean=False):
         if not self.job:
             return
-        for miner in list(self.miners):
+        miners = list(self.miners)
+        if not miners:
+            return
+        params = self.job.notify(clean)
+
+        async def deliver(miner):
             try:
                 self.remember_job_for_miner(miner)
-                msg = {"id": None, "method": "mining.notify", "params": self.job.notify(clean)}
-                await miner.send(msg)
-            except Exception:
+                await asyncio.wait_for(
+                    miner.send({"id": None, "method": "mining.notify", "params": params}),
+                    timeout=5.0,
+                )
+                return True
+            except Exception as exc:
+                log.warning("dropping miner during job broadcast worker=%s: %s", miner.worker, exc)
                 self.miners.discard(miner)
                 if miner.authorized and miner.worker != "unknown":
                     self.update_worker_connection(miner.worker)
-                try:
-                    miner.writer.close()
-                except Exception:
-                    pass
+                await miner.close()
+                return False
+
+        await asyncio.gather(*(deliver(miner) for miner in miners), return_exceptions=True)
 
     def remember_job_for_miner(self, miner):
         """Pin the share difficulty to the job the miner was actually given."""
@@ -635,29 +664,31 @@ class Pool:
         )
 
         if self.cfg.vardiff_enabled and previous:
-            interval = now - previous
-            nd = miner.difficulty
+            interval = max(0.001, now - previous)
+            if miner.share_time_ema is None:
+                miner.share_time_ema = interval
+            else:
+                # Exponential moving average prevents one lucky/unlucky share
+                # from causing a large difficulty jump.
+                miner.share_time_ema = (0.70 * miner.share_time_ema) + (0.30 * interval)
 
-            # Vardiff must not react to a single lucky share by repeatedly
-            # doubling into an absurd target. Require a few accepted shares
-            # before increasing difficulty and limit each adjustment.
-            if miner.shares >= 4:
-                if interval < self.cfg.vardiff_target_seconds / 2:
-                    nd *= 2
-                elif interval > self.cfg.vardiff_target_seconds * 2:
-                    nd /= 2
-
-            nd = min(
-                self.cfg.vardiff_max,
-                max(self.cfg.vardiff_min, miner.minimum_difficulty, nd)
-            )
-            if abs(nd - miner.difficulty) / max(miner.difficulty, 1e-12) >= 0.01:
-                miner.difficulty = nd
-                self.db.touch_worker(miner.worker, nd)
-                try:
-                    await miner.send({"id": None, "method": "mining.set_difficulty", "params": [nd]})
-                except Exception:
-                    pass
+            # Retarget in small, predictable steps after enough observations.
+            if miner.shares >= 4 and miner.shares % 4 == 0 and miner.share_time_ema:
+                target = max(self.cfg.vardiff_target_seconds, 1.0)
+                factor = (target / miner.share_time_ema) ** 0.5
+                factor = max(0.5, min(2.0, factor))
+                nd = miner.difficulty * factor
+                nd = min(
+                    self.cfg.vardiff_max,
+                    max(self.cfg.vardiff_min, miner.minimum_difficulty, nd)
+                )
+                if abs(nd - miner.difficulty) / max(miner.difficulty, 1e-12) >= 0.05:
+                    miner.difficulty = nd
+                    self.db.touch_worker(miner.worker, nd)
+                    try:
+                        await miner.send({"id": None, "method": "mining.set_difficulty", "params": [nd]})
+                    except Exception:
+                        pass
 
         if block:
             block_hex = self.job.block_hex(cb, nonce, ntime, header_version)
@@ -669,6 +700,8 @@ class Pool:
                 "BLOCK CANDIDATE: height=%s worker=%s hash=%s submit=%s",
                 self.job.height, miner.worker, h, result
             )
-            await self.refresh_job("block-submit")
+            if result is None:
+                await asyncio.sleep(0.25)
+                await self.refresh_job("block-submit", only_if_new_block=True)
 
         return True, None
