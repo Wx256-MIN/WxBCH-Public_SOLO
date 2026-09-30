@@ -3,7 +3,7 @@ import unittest
 
 sys.path.insert(0, ".")
 
-from app.crypto import sha256d, encode_compact_target, difficulty_to_target, DIFF1_TARGET, merkle_root, hash_meets_target
+from app.crypto import sha256d, encode_compact_target, difficulty_to_target, target_to_difficulty, DIFF1_TARGET, merkle_root, hash_meets_target
 from app.address import decode_cashaddr
 from app.stratum import Job, apply_version_rolling
 
