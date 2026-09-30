@@ -73,10 +73,12 @@ class Web:
                         except Exception:
                             network = {}
                     workers, blocks, events = outer.db.snapshot()
-                    authorized_miners = (
-                        sum(1 for miner in outer.pool.miners if miner.authorized)
-                        if outer.pool is not None else 0
-                    )
+                    connected_workers = set()
+                    if outer.pool is not None:
+                        for miner in outer.pool.miners:
+                            if miner.authorized and miner.worker not in ("", "unknown", "worker"):
+                                connected_workers.add(miner.worker)
+                    authorized_miners = len(connected_workers)
                     job = outer.pool.job if outer.pool is not None else None
                     obj = {
                         "setup_required": not outer.cfg.configured,
@@ -627,10 +629,18 @@ async function savePoolSettings(silent=false){
   return true
  }catch(e){$('setupmsg').textContent='Error: '+e;return false}
 }
+function displayWorkerName(name){
+ const s=String(name||'').trim();
+ if(!s)return 'Unknown';
+ // Pool usernames are payoutAddress.workerName. Never expose the payout
+ // address on the dashboard; show only the worker suffix.
+ const dot=s.lastIndexOf('.');
+ return dot>=0 && dot<s.length-1 ? s.slice(dot+1) : s;
+}
 function renderWorkers(workers){
  $('workerCount').textContent=workers.length+' worker'+(workers.length===1?'':'s');
  if(!workers.length){$('workers').innerHTML='<div class="empty">No miners connected yet.</div>';return}
- $('workers').innerHTML=workers.map(w=>'<div class="worker"><div class="workerTop"><div class="workerName">'+esc(w.worker)+'</div><div class="workerHash">'+fmtHash(w.hashrate||0)+'</div></div><div class="workerMeta"><div><span>Accepted</span><b>'+fmtNum(w.shares)+'</b></div><div><span>Rejected</span><b>'+fmtNum(w.rejected)+'</b></div><div><span>Share diff</span><b>'+fmtDifficulty(w.difficulty)+'</b></div><div><span>Best diff</span><b>'+Number(w.best_diff||0).toFixed(4)+'</b></div></div><div class="muted" style="font-size:9px;margin-top:8px">Last seen · '+ago(w.last_seen)+'</div></div>').join('')
+ $('workers').innerHTML=workers.map(w=>'<div class="worker"><div class="workerTop"><div class="workerName">'+esc(displayWorkerName(w.worker))+'</div><div class="workerHash">'+fmtHash(w.hashrate||0)+'</div></div><div class="workerMeta"><div><span>Accepted</span><b>'+fmtNum(w.shares)+'</b></div><div><span>Rejected</span><b>'+fmtNum(w.rejected)+'</b></div><div><span>Share diff</span><b>'+fmtDifficulty(w.difficulty)+'</b></div><div><span>Best diff</span><b>'+fmtDifficulty(w.best_diff)+'</b></div></div><div class="muted" style="font-size:9px;margin-top:8px">Last seen · '+ago(w.last_seen)+'</div></div>').join('')
 }
 async function refreshData(){
  try{
