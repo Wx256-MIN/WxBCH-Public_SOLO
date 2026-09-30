@@ -135,13 +135,15 @@ class Config:
         return bool(self.payout_address and self.rpc_url and self.rpc_user)
 
     def save_setup(self, data):
-        clean = {
+        saved = self._load_saved()
+        clean = dict(saved)
+        clean.update({
             "BCH_RPC_URL": str(data["BCH_RPC_URL"]).strip(),
             "BCH_RPC_USER": str(data["BCH_RPC_USER"]).strip(),
             "BCH_RPC_PASSWORD": str(data.get("BCH_RPC_PASSWORD", "")).strip() or self.rpc_password,
             "BCH_ZMQ_URL": str(data.get("BCH_ZMQ_URL", "")).strip(),
             "BCH_PAYOUT_ADDRESS": str(data["BCH_PAYOUT_ADDRESS"]).strip(),
-        }
+        })
         self.config_path.parent.mkdir(parents=True, exist_ok=True)
         tmp = self.config_path.with_suffix(".tmp")
         tmp.write_text(json.dumps(clean, indent=2) + "\n")
