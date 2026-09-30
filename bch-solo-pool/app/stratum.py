@@ -178,6 +178,8 @@ class Miner:
         self.first_share_time = 0.0
         self.accepted_work = 0.0
         self.hashrate = 0.0
+        # Highest share difficulty reached during this TCP session.
+        self.session_best_diff = 0.0
         self.share_samples = []
         self.authorized_at = 0.0
 
@@ -460,6 +462,7 @@ class Pool:
 
         block = hash_meets_target(digest, self.job.network_target)
         best_diff = target_to_difficulty(int.from_bytes(digest, "little"))
+        miner.session_best_diff = max(miner.session_best_diff, best_diff)
         now = time.time()
         previous = miner.last_share
         miner.last_share = now
