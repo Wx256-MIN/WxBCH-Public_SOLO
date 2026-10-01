@@ -25,6 +25,8 @@ class DB:
         cols = {row[1] for row in self.conn.execute("PRAGMA table_info(workers)")}
         if "connected" not in cols:
             self.conn.execute("ALTER TABLE workers ADD COLUMN connected INTEGER NOT NULL DEFAULT 0")
+        if "rejected_diff" not in cols:
+            self.conn.execute("ALTER TABLE workers ADD COLUMN rejected_diff REAL NOT NULL DEFAULT 0")
 
     def _init(self):
         with self.lock, self.conn:
@@ -38,6 +40,7 @@ class DB:
               hashrate REAL NOT NULL DEFAULT 0,
               difficulty REAL NOT NULL DEFAULT 1,
               best_diff REAL NOT NULL DEFAULT 0,
+              rejected_diff REAL NOT NULL DEFAULT 0,
               connected INTEGER NOT NULL DEFAULT 0
             );
             CREATE TABLE IF NOT EXISTS blocks(
@@ -89,22 +92,27 @@ class DB:
                 (int(bool(connected)), now, worker)
             )
 
-    def share(self, worker, accepted, best_diff=0.0, hashrate=0.0, difficulty=1.0):
+    def share(self, worker, accepted, best_diff=0.0, hashrate=0.0, difficulty=1.0,
+              rejected_diff=0.0):
         now = time.time()
         with self.lock, self.conn:
             self.conn.execute("""
-              INSERT INTO workers(worker,first_seen,last_seen,shares,rejected,hashrate,difficulty,best_diff)
-              VALUES(?,?,?,?,?,?,?,?)
+              INSERT INTO workers(worker,first_seen,last_seen,shares,rejected,hashrate,difficulty,best_diff,rejected_diff)
+              VALUES(?,?,?,?,?,?,?,?,?)
               ON CONFLICT(worker) DO UPDATE SET
                 last_seen=excluded.last_seen,
                 shares=workers.shares+excluded.shares,
                 rejected=workers.rejected+excluded.rejected,
                 hashrate=CASE WHEN excluded.hashrate>0 THEN excluded.hashrate ELSE workers.hashrate END,
                 difficulty=excluded.difficulty,
-                best_diff=MAX(workers.best_diff, excluded.best_diff)
+                best_diff=MAX(workers.best_diff, excluded.best_diff),
+                rejected_diff=CASE
+                  WHEN excluded.rejected>0 THEN excluded.rejected_diff
+                  ELSE workers.rejected_diff
+                END
             """, (
                 worker, now, now, int(accepted), int(not accepted),
-                hashrate, difficulty, best_diff
+                hashrate, difficulty, best_diff, rejected_diff
             ))
 
     def event(self, kind, worker="", detail=""):
