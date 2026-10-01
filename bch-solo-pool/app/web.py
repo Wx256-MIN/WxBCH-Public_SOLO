@@ -197,7 +197,8 @@ class Web:
                                 if abs(new_difficulty - miner.difficulty) > 1e-12:
                                     miner.difficulty = new_difficulty
                                     outer.pool.db.touch_worker(miner.worker, new_difficulty)
-                                    try:                                        awaitable = miner.send({
+                                    try:
+                                        awaitable = miner.send({
                                             "id": None,
                                             "method": "mining.set_difficulty",
                                             "params": [new_difficulty]
