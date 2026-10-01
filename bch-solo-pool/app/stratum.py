@@ -662,12 +662,18 @@ class Pool:
             job.job_id, miner.difficulty
         )
         share_target = difficulty_to_target(share_difficulty)
+        actual_share_diff = target_to_difficulty(int.from_bytes(digest, "little"))
         if not hash_meets_target(digest, share_target):
-            self.db.share(miner.worker, False, difficulty=share_difficulty)
+            self.db.share(
+                miner.worker,
+                False,
+                difficulty=share_difficulty,
+                rejected_diff=actual_share_diff
+            )
             return False, [23, "Low difficulty share", None]
 
         block = hash_meets_target(digest, job.network_target)
-        best_diff = target_to_difficulty(int.from_bytes(digest, "little"))
+        best_diff = actual_share_diff
         miner.session_best_diff = max(miner.session_best_diff, best_diff)
         now = time.time()
         previous = miner.last_share
