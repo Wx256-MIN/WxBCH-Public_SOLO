@@ -2,13 +2,13 @@ manifestVersion: 1
 id: bch-solo-pool
 category: finance
 name: BCH Solo Pool
-version: "1.7.2"
+version: "1.7.3"
 tagline: Self-hosted Bitcoin Cash solo mining pool
 
 releaseNotes: >-
-  Reliability release: adds bounded Stratum I/O, zombie-session cleanup, submit-rate protection,
-  bounded ntime validation, transient BCHN RPC retries, retryable block submission, and
-  30-second same-tip template refreshes with clean_jobs=false while retaining eight valid jobs.
+  Dashboard visibility release: improves the Connected Workers cards with clearer
+  hashrate emphasis, online status, share metrics, session-best highlighting, and
+  improved spacing and mobile readability.
 description: >-
   Self-hosted Bitcoin Cash solo mining pool for the Umbrel BCHN node and SHA-256 ASIC miners.
   Provides Stratum V1, BCHN block-template integration, optional ZMQ block
