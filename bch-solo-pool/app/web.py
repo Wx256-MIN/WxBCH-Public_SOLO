@@ -197,8 +197,7 @@ class Web:
                                 if abs(new_difficulty - miner.difficulty) > 1e-12:
                                     miner.difficulty = new_difficulty
                                     outer.pool.db.touch_worker(miner.worker, new_difficulty)
-                                    try:
-                                        awaitable = miner.send({
+                                    try:                                        awaitable = miner.send({
                                             "id": None,
                                             "method": "mining.set_difficulty",
                                             "params": [new_difficulty]
@@ -397,8 +396,7 @@ body.dark .tableWrap{border-color:#294033}
 body.dark table{background:#0c1712}
 body.dark th{background:#13241b;color:#91a79a;border-color:#24392e}
 body.dark td{color:#d3e4d9;border-color:#20352a}
-body.dark tr:hover td{background:#12221a}
-body.dark .badge{background:#173b29;color:#9fe0b7}
+body.dark tr:hover td{background:#12221a}body.dark .badge{background:#173b29;color:#9fe0b7}
 body.dark .badge.bad{background:#3a2020;color:#f0a4a4}
 body.dark .worker{background:#101f17;border-color:#294033}
 body.dark .workerName{color:#e3f1e8}
@@ -448,7 +446,7 @@ main{max-width:1320px;margin:auto;padding:22px clamp(12px,3vw,30px) 60px;positio
 .notice{padding:13px;border-radius:15px;background:#f1f6f0;border:1px solid #dce8dd;color:#66776d;font-size:11px;line-height:1.55}
 .tableWrap{overflow:auto;border:1px solid #e4e7df;border-radius:14px}table{width:100%;border-collapse:collapse;min-width:600px;background:#fffdf8}th,td{padding:11px 9px;border-bottom:1px solid #edf0e9;text-align:left;font-size:11px}th{color:#7a897f;font-weight:900;text-transform:uppercase;font-size:9px;letter-spacing:.08em;background:#f7f7f1}td{color:#365347}tr:last-child td{border-bottom:0}tr:hover td{background:#f8faf6}
 .badge{display:inline-flex;padding:5px 8px;border-radius:999px;background:#e3f2e9;color:#357657;font-size:9px;font-weight:900}.badge.bad{background:#f8e5e3;color:#a64d4d}
-.workerGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}.worker{padding:14px;border:1px solid #e0e7df;border-radius:16px;background:#fafaf5}.workerTop{display:flex;justify-content:space-between;gap:8px}.workerName{font-weight:850;font-size:12px;word-break:break-all}.workerHash{color:#32815e;font-size:11px;font-weight:900}.workerMeta{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px}.workerMeta div{background:#f1f3ed;border-radius:10px;padding:7px}.workerMeta span{display:block;color:#7b897f;font-size:8px}.workerMeta b{font-size:10px;color:#365548}
+.workerGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.worker{position:relative;padding:16px;border:1px solid #cfded3;border-radius:18px;background:linear-gradient(145deg,#fbfdf9 0%,#f3f8f3 100%);box-shadow:0 8px 22px rgba(38,73,53,.08);overflow:hidden}.worker:before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,#3d9b6e,#77c994)}.workerTop{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding-left:4px}.workerName{font-weight:900;font-size:14px;line-height:1.25;word-break:break-all;color:#183f30}.workerName:before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:#3da86f;box-shadow:0 0 0 4px rgba(61,168,111,.13);margin:0 8px 1px 0}.workerHash{text-align:right;color:#218457;font-size:18px;line-height:1;font-weight:950;letter-spacing:-.04em;white-space:nowrap}.workerHash:after{content:" LIVE";display:block;color:#6f8a7b;font-size:7px;letter-spacing:.12em;font-weight:900;margin-top:5px}.workerMeta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:14px}.workerMeta div{background:rgba(232,241,234,.78);border:1px solid #dbe7de;border-radius:11px;padding:9px 8px;min-height:48px}.workerMeta span{display:block;color:#708279;font-size:8px;text-transform:uppercase;letter-spacing:.05em;font-weight:800;margin-bottom:4px}.workerMeta b{font-size:12px;color:#284f3e;font-weight:900}.workerMeta div:nth-child(2) b{color:#b45a5a}.workerMeta div:nth-child(3) b{color:#315f4b}.workerMeta div:nth-child(5){grid-column:span 2;background:#e5f3e9;border-color:#c9e3d2}.workerMeta div:nth-child(5) b{color:#237b50;font-size:13px}.workerLast{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:11px;padding:7px 9px;border-radius:10px;background:rgba(255,255,255,.62);color:#6d8076;font-size:9px}.workerLast strong{color:#365b4a;font-size:9px}
 .event{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid #e8ece5}.event:last-child{border-bottom:0}.eventIcon{width:30px;height:30px;border-radius:11px;background:#e8f2ea;border:1px solid #d5e4d8;display:grid;place-items:center;color:#438362;font-size:13px}.eventText{flex:1;font-size:11px;line-height:1.4}.eventTime{color:var(--muted);font-size:9px;margin-top:3px}
 .setup{display:none}.setup.visible{display:block}.field{margin-bottom:12px}.field label{display:block;margin-bottom:6px;font-size:11px;font-weight:800;color:#466155}.field input{width:100%;padding:12px;background:#fbfbf7;color:#18382b;border:1px solid #d7e0d7;border-radius:12px;font-size:13px;outline:none}.field input:focus{border-color:#72aa8b;box-shadow:0 0 0 3px rgba(80,153,111,.1)}.row{display:flex;gap:8px}.row input{flex:1}
 .compact .card{padding:13px}.compact .metric{padding:12px}.compact .metrics{gap:7px}.compact .workerMeta{margin-top:6px}.hidden{display:none!important}.muted{color:var(--muted)}
@@ -543,13 +541,18 @@ body{overflow-x:hidden}
   .controls{display:grid;grid-template-columns:1fr 1fr;gap:5px}
   .controls .btn,.controls .toggle{min-width:0;width:100%;justify-content:center;padding:8px 5px;font-size:9px}
   .notice{padding:9px;font-size:8px}
-  .worker{padding:9px}
-  .workerName{font-size:10px}
-  .workerHash{font-size:9px}
-  .workerMeta{gap:4px;margin-top:7px}
-  .workerMeta div{padding:5px;border-radius:8px}
-  .workerMeta span{font-size:7px}
-  .workerMeta b{font-size:8px}
+  .worker{padding:12px}
+  .workerTop{gap:8px}
+  .workerName{font-size:11px}
+  .workerHash{font-size:14px}
+  .workerHash:after{font-size:6px;margin-top:4px}
+  .workerMeta{gap:4px;margin-top:9px}
+  .workerMeta div{padding:6px;border-radius:8px;min-height:40px}
+  .workerMeta span{font-size:6px}
+  .workerMeta b{font-size:9px}
+  .workerMeta div:nth-child(5) b{font-size:10px}
+  .workerLast{margin-top:8px;padding:6px 7px;font-size:7px}
+  .workerLast strong{font-size:8px}
   .tableWrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
   table{min-width:540px}
   th,td{padding:8px 6px;font-size:8px}
@@ -597,8 +600,7 @@ body{overflow-x:hidden}
  <div class="field"><label>BCH payout address</label><input id="payout" autocomplete="off" autocapitalize="none" spellcheck="false"></div>
 
  <div class="cardHead" style="margin-top:18px"><h2>Difficulty (Vardiff)</h2><span class="muted">Automatic share difficulty</span></div>
- <div class="split">
-  <div class="field"><label>Vardiff</label><label class="toggle"><input id="vardiffEnabled" type="checkbox"> Enable automatic difficulty</label></div>
+ <div class="split">  <div class="field"><label>Vardiff</label><label class="toggle"><input id="vardiffEnabled" type="checkbox"> Enable automatic difficulty</label></div>
   <div class="field"><label>Target share time (seconds)</label><input id="vardiffTarget" type="number" min="5" max="600" step="1" placeholder="30"></div>
  </div>
  <div class="split">
@@ -758,7 +760,7 @@ function displayWorkerName(name){
 function renderWorkers(workers){
  $('workerCount').textContent=workers.length+' worker'+(workers.length===1?'':'s');
  if(!workers.length){$('workers').innerHTML='<div class="empty">No miners connected yet.</div>';return}
- $('workers').innerHTML=workers.map(w=>'<div class="worker"><div class="workerTop"><div class="workerName">'+esc(displayWorkerName(w.worker))+'</div><div class="workerHash">'+fmtHash(w.hashrate||0)+'</div></div><div class="workerMeta"><div><span>Accepted</span><b>'+fmtNum(w.shares)+'</b></div><div><span>Rejected</span><b>'+fmtNum(w.rejected)+'</b></div><div><span>Share diff</span><b>'+fmtDifficulty(w.difficulty)+'</b></div><div><span>Best diff</span><b>'+fmtDifficulty(w.best_diff)+'</b></div><div><span>Session best</span><b>'+fmtDifficulty(w.session_best_diff)+'</b></div></div><div class="muted" style="font-size:9px;margin-top:8px">Last seen · '+ago(w.last_seen)+'</div></div>').join('')
+ $('workers').innerHTML=workers.map(w=>'<div class="worker"><div class="workerTop"><div class="workerName">'+esc(displayWorkerName(w.worker))+'</div><div class="workerHash">'+fmtHash(w.hashrate||0)+'</div></div><div class="workerMeta"><div><span>Accepted</span><b>'+fmtNum(w.shares)+'</b></div><div><span>Rejected</span><b>'+fmtNum(w.rejected)+'</b></div><div><span>Share difficulty</span><b>'+fmtDifficulty(w.difficulty)+'</b></div><div><span>Best diff</span><b>'+fmtDifficulty(w.best_diff)+'</b></div><div><span>Session best</span><b>'+fmtDifficulty(w.session_best_diff)+'</b></div></div><div class="workerLast"><span>Last share</span><strong>'+ago(w.last_seen)+'</strong></div></div>').join('')
 }
 async function refreshData(){
  try{
