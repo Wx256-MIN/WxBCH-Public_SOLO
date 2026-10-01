@@ -148,6 +148,21 @@ class CoreTests(unittest.TestCase):
             self.assertEqual(workers[0]["shares"], 1)
             reopened.close()
 
+    def test_db_records_rejected_shares_and_rejected_diff(self):
+        import tempfile
+        from app.db import DB
+
+        with tempfile.TemporaryDirectory() as tmp:
+            path = tmp + "/pool.sqlite3"
+            db = DB(path)
+            db.touch_worker("test", 1000, connected=True)
+            db.share("test", False, difficulty=1000, rejected_diff=250.5)
+            workers, _, _ = db.snapshot()
+            self.assertEqual(workers[0]["shares"], 0)
+            self.assertEqual(workers[0]["rejected"], 1)
+            self.assertAlmostEqual(workers[0]["rejected_diff"], 250.5)
+            db.close()
+
     def test_cashaddr(self):
         script = decode_cashaddr("bitcoincash:qpm2qsznhks23z7629mms6s4cwef74vcwvy22gdx6a")
         self.assertTrue(script.startswith(b"\x76\xa9"))
