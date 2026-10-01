@@ -596,22 +596,43 @@ class Pool:
         return True
 
     async def submit_share(self, miner, params):
+        # Every Stratum submission that we reject must be recorded.  Previously
+        # only the low-difficulty path updated the DB, so miners could report
+        # rejected shares while the dashboard remained at zero.
+        def reject(code, message, difficulty=0.0, rejected_diff=0.0):
+            try:
+                self.db.share(
+                    miner.worker,
+                    False,
+                    difficulty=max(float(difficulty or 0.0), 0.000001),
+                    rejected_diff=max(float(rejected_diff or 0.0), 0.0),
+                )
+                self.db.event(
+                    "share_rejected",
+                    miner.worker,
+                    f"reason={message} difficulty={float(rejected_diff or 0.0):.8g}"
+                )
+            except Exception:
+                log.exception("failed to record rejected share worker=%s reason=%s",
+                              miner.worker, message)
+            return False, [code, message, None]
+
         if not self.job:
-            return False, [21, "No current job", None]
+            return reject(21, "No current job")
         if not miner.authorized:
-            return False, [24, "Unauthorized", None]
+            return reject(24, "Unauthorized")
         if len(params) < 5:
-            return False, [20, "Malformed submit", None]
+            return reject(20, "Malformed submit")
 
         worker, job_id, ex2_hex, ntime_hex, nonce_hex = map(str, params[:5])
         version_bits_hex = str(params[5]) if len(params) >= 6 else None
         if worker != miner.worker:
-            return False, [21, "Worker mismatch", None]
+            return reject(21, "Worker mismatch")
         job = self.jobs.get(job_id)
         if job is None:
-            return False, [21, "Stale share", None]
+            return reject(21, "Stale share", miner.difficulty)
         if job.prevhash != self.job.prevhash or job.height != self.job.height:
-            return False, [21, "Stale share", None]
+            return reject(21, "Stale share", miner.job_difficulties.get(job_id, miner.difficulty))
 
         now_mono = time.monotonic()
         if now_mono - miner.submit_window_start >= 1.0:
@@ -619,7 +640,7 @@ class Pool:
             miner.submit_window_count = 0
         miner.submit_window_count += 1
         if miner.submit_window_count > miner.max_submits_per_second:
-            return False, [20, "Submitting too fast", None]
+            return reject(20, "Submitting too fast", miner.difficulty)
 
         try:
             ex2 = bytes.fromhex(ex2_hex)
@@ -627,25 +648,25 @@ class Pool:
             nonce = int(nonce_hex, 16)
             version_bits = int(version_bits_hex, 16) if version_bits_hex is not None else 0
         except ValueError:
-            return False, [20, "Invalid hex", None]
+            return reject(20, "Invalid hex", miner.difficulty)
 
         if version_bits & ~miner.version_mask:
-            return False, [20, "Invalid version rolling bits", None]
+            return reject(20, "Invalid version rolling bits", miner.difficulty)
         if version_bits_hex is not None and not miner.version_rolling:
-            return False, [20, "Version rolling not negotiated", None]
+            return reject(20, "Version rolling not negotiated", miner.difficulty)
 
         if len(ex2) != miner.ex2_size or not 0 <= nonce <= 0xffffffff:
-            return False, [20, "Invalid extranonce2/nonce", None]
+            return reject(20, "Invalid extranonce2/nonce", miner.difficulty)
         mintime = int(job.template.get("mintime", 0))
         # Keep rolling time bounded relative to the advertised job while
         # allowing normal ASIC clock rolling and future timestamps.
         lower_ntime = max(mintime, int(job.ntime) - 600)
         if not lower_ntime <= ntime <= int(time.time()) + 7200:
-            return False, [20, "Invalid ntime", None]
+            return reject(20, "Invalid ntime", miner.job_difficulties.get(job_id, miner.difficulty))
 
         key = (job.job_id, miner.worker, ex2_hex.lower(), ntime, nonce, version_bits)
         if not self._remember_share(key):
-            return False, [22, "Duplicate share", None]
+            return reject(22, "Duplicate share", miner.job_difficulties.get(job_id, miner.difficulty))
 
         cb = job.coinbase(miner.ex1, ex2)
         header_version = (
@@ -664,13 +685,12 @@ class Pool:
         share_target = difficulty_to_target(share_difficulty)
         actual_share_diff = target_to_difficulty(int.from_bytes(digest, "little"))
         if not hash_meets_target(digest, share_target):
-            self.db.share(
-                miner.worker,
-                False,
-                difficulty=share_difficulty,
-                rejected_diff=actual_share_diff
+            return reject(
+                23,
+                "Low difficulty share",
+                share_difficulty,
+                actual_share_diff
             )
-            return False, [23, "Low difficulty share", None]
 
         block = hash_meets_target(digest, job.network_target)
         best_diff = actual_share_diff
