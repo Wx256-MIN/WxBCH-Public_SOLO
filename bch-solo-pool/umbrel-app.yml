@@ -1,21 +1,25 @@
 manifestVersion: 1
 id: bch-solo-pool
-category: finance
+category: bitcoin
 name: BCH Solo Pool
-version: "2.0.0"
-tagline: Public-Pool-style solo mining for Bitcoin Cash
-releaseNotes: >-
-  Complete rewrite with clean Stratum V1, BCHN GBT integration,
-  BCH address validation, worker dashboard and direct block submission.
+version: "2.0.1"
+tagline: Public-Pool-style solo mining pool for Bitcoin Cash
 description: >-
-  Bitcoin Cash solo mining pool for Umbrel BCHN nodes and SHA-256 ASIC miners.
+  A lightweight Bitcoin Cash solo mining pool for BCHN and SHA-256 ASIC miners.
+  Includes Stratum V1, BCHN getblocktemplate support, direct block submission,
+  BCH address validation, version rolling and a web dashboard.
+releaseNotes: >-
+  Improved Umbrel App Store packaging and Stratum port configuration.
 developer: BCH Solo Pool Community
 website: https://github.com/Wx256-MIN/WxBCH-SOLO
 repo: https://github.com/Wx256-MIN/WxBCH-SOLO
 support: https://github.com/Wx256-MIN/WxBCH-SOLO/issues
-submitter: Wx256-MIN
-submission: https://github.com/getumbrel/umbrel-apps
 dependencies:
   - bitcoin-cash-node
 port: 3567
 gallery: []
+path: ""
+defaultUsername: ""
+defaultPassword: ""
+submitter: Wx256-MIN
+submission: https://github.com/getumbrel/umbrel-apps
