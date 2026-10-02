@@ -26,11 +26,11 @@ This repository is a clean-room implementation inspired by the architecture and 
 ```
 SHA-256 ASIC
     |
-    | Stratum V1 :3336
+    | Stratum V1 :41837
     v
 WxBCH Public Pool
     |             \
-    | RPC :8432    \ ZMQ hashblock :8433
+    | RPC :8432    \ ZMQ hashblock :28332
     v               v
 BCHN / AxeBCH node
     |
@@ -59,7 +59,7 @@ rpcuser=YOUR_RPC_USER
 rpcpassword=YOUR_RPC_PASSWORD
 rpcbind=0.0.0.0
 rpcallowip=172.16.0.0/12
-zmqpubhashblock=tcp://0.0.0.0:8433
+zmqpubhashblock=tcp://0.0.0.0:28332
 ```
 
 Do not expose the RPC port or RPC credentials to the public Internet.
@@ -84,8 +84,8 @@ Default ports:
 
 | Service | Port |
 |---|---:|
-| Stratum V1 | 3336 |
-| Web/API | 3337 |
+| Stratum V1 | 41837 |
+| Web/API | 41838 |
 
 ## Run with Docker
 
@@ -98,25 +98,25 @@ docker compose logs -f
 Dashboard:
 
 ```
-http://YOUR_POOL_IP:3337
+http://YOUR_POOL_IP:41838
 ```
 
 Health:
 
 ```
-http://YOUR_POOL_IP:3337/health
+http://YOUR_POOL_IP:41838/health
 ```
 
 Pool API:
 
 ```
-http://YOUR_POOL_IP:3337/api/pool
+http://YOUR_POOL_IP:41838/api/pool
 ```
 
 Current template:
 
 ```
-http://YOUR_POOL_IP:3337/api/template/current
+http://YOUR_POOL_IP:41838/api/template/current
 ```
 
 ## Miner configuration
@@ -124,7 +124,7 @@ http://YOUR_POOL_IP:3337/api/template/current
 Use the BCH payout address as the Stratum username.
 
 ```
-URL:      stratum+tcp://YOUR_POOL_IP:3336
+URL:      stratum+tcp://YOUR_POOL_IP:41837
 Username: bitcoincash:qYOUR_BCH_ADDRESS.worker1
 Password: x
 ```
