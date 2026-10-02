@@ -24,7 +24,7 @@ releaseNotes: |
   2026-10-03 - Fixed Umbrel category metadata and bumped the app package to 0.1.3.
   2026-10-03 - Adds selectable pruning targets and expanded synchronization diagnostics.
   2026-10-03 - Fixes pruning settings write permissions for the dashboard.
-  2026-10-03 - Uses multi-architecture 0.1.3 container images for amd64 and arm64.
+  2026-10-03 - Uses matching multi-architecture container image tags for amd64 and arm64.
 dependencies: []
 path: ""
 defaultUsername: ""
