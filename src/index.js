@@ -13,7 +13,7 @@ const { cashAddressToLockingBytecode, base58AddressToLockingBytecode } = require
 
 const env=(k,d)=>process.env[k] ?? d;
 const cfg={
- rpcUrl:env("RPC_URL","http://127.0.0.1:8432"), rpcUser:env("RPC_USER",""), rpcPassword:env("RPC_PASSWORD",""),
+ rpcUrl:env("RPC_URL","http://127.0.0.1:8432"), rpcFallbackUrl:env("RPC_FALLBACK_URL","http://127.0.0.1:8332"), rpcUser:env("RPC_USER",""), rpcPassword:env("RPC_PASSWORD",""),
  zmq:env("ZMQ_HASHBLOCK",""), stratumHost:env("STRATUM_HOST","0.0.0.0"), stratumPort:Number(env("STRATUM_PORT","3336")),
  apiHost:env("API_HOST","0.0.0.0"), apiPort:Number(env("API_PORT","3337")), dbPath:env("DB_PATH","./data/pool.sqlite"),
  tag:env("COINBASE_TAG","/WxBCH-Pool/"), extraHex:env("COINBASE_EXTRA_HEX",""),
@@ -48,10 +48,14 @@ function jsonLine(s){try{return JSON.parse(s);}catch{return null;}}
 class Rpc{
  async call(method,params=[]){
   const auth=Buffer.from(cfg.rpcUser+":"+cfg.rpcPassword).toString("base64");
-  const r=await fetch(cfg.rpcUrl,{method:"POST",headers:{"content-type":"application/json","authorization":"Basic "+auth},
-    body:JSON.stringify({jsonrpc:"1.0",id:"wxbch",method,params})});
-  if(!r.ok)throw new Error("RPC HTTP "+r.status);
-  const j=await r.json();if(j.error)throw new Error(j.error.message||JSON.stringify(j.error));return j.result;
+  const urls=[cfg.rpcUrl,cfg.rpcFallbackUrl].filter((u,i,a)=>u&&!a.slice(0,i).includes(u));let last;
+  for(const url of urls){try{
+   const r=await fetch(url,{method:"POST",headers:{"content-type":"application/json","authorization":"Basic "+auth},body:JSON.stringify({jsonrpc:"1.0",id:"wxbch",method,params})});
+   if(!r.ok){last=new Error("RPC HTTP "+r.status);if(r.status===401||r.status===403)break;continue;}
+   const j=await r.json();if(j.error)throw new Error(j.error.message||JSON.stringify(j.error));return j.result;
+  }catch(e){last=e;}
+  }
+  throw last||new Error("No BCH RPC endpoint available");
  }
 }
 const rpc=new Rpc();
