@@ -3,11 +3,11 @@ id: wxbch-public-pool
 category: bitcoin
 name: WxBCH Public Pool
 icon: https://raw.githubusercontent.com/Wx256-MIN/WxBCH-Public_SOLO/main/wxbch-public-pool/icon.png
-version: "1.0.4"
+version: "1.0.5"
 tagline: Bitcoin Cash solo mining pool for BCHN
 dependencies: []
 releaseNotes: >-
-  Fixed UmbrelOS dashboard connectivity by binding the API and Stratum ports directly on the host network.
+  Fixed Umbrel proxy routing and dashboard port mapping for the public pool.
 description: >-
   BCHN-native Public-Pool-style Stratum V1 solo mining pool for Bitcoin Cash.
 developer: Wx256-MIN
