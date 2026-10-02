@@ -2,7 +2,7 @@ manifestVersion: 1
 id: wxbch-public-pool
 category: bitcoin
 name: WxBCH Public Pool
-icon: icon.png
+icon: https://raw.githubusercontent.com/Wx256-MIN/WxBCH-Public_SOLO/main/wxbch-public-pool/icon.png
 version: "1.0.1"
 tagline: Bitcoin Cash solo mining pool for BCHN
 description: >-
@@ -11,6 +11,6 @@ developer: Wx256-MIN
 website: https://github.com/Wx256-MIN/WxBCH-Public_SOLO
 repo: https://github.com/Wx256-MIN/WxBCH-Public_SOLO
 support: https://github.com/Wx256-MIN/WxBCH-Public_SOLO/issues
-port: 3334
+port: 41838
 gallery: []
 path: ""
