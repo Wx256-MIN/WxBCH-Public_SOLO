@@ -2,7 +2,7 @@ manifestVersion: 1
 id: wxbch-public-pool
 category: bitcoin
 name: BCHN Public Pool
-version: "0.1.0"
+version: "0.1.2"
 tagline: Public-Pool-style solo mining for Bitcoin Cash
 description: >-
   A self-hosted Bitcoin Cash solo mining pool for BCHN-compatible nodes.
