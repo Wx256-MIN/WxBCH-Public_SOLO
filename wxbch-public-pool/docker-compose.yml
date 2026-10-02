@@ -2,7 +2,7 @@ version: "3.7"
 
 services:
   web:
-    image: ghcr.io/wx256-min/wxbch-public-pool:1.0.7
+    image: ghcr.io/wx256-min/wxbch-public-pool:1.0.8
     restart: on-failure
     init: true
     stop_grace_period: 30s
