@@ -1,7 +1,7 @@
 {
   "name": "wxbch-public-pool",
-  "version": "1.0.9",
-  "description": "BCHN-native Public-Pool-style Bitcoin Cash solo mining pool with an integrated BCHN node",
+  "version": "1.0.11",
+  "description": "BCHN-native Public-Pool-style Bitcoin Cash solo mining pool integrated with the Umbrel BCHN node",
   "private": false,
   "license": "GPL-3.0-only",
   "engines": {
