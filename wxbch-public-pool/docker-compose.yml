@@ -12,11 +12,12 @@ services:
     restart: on-failure
     stop_grace_period: 2m
     volumes:
-      - "${APP_DATA_DIR}/data/bchn:/root/.bitcoin"
+      - "${APP_DATA_DIR}/data/bchn:/data"
     environment:
       BCHN_RPC_USER: wxbch
       BCHN_RPC_PASSWORD: "${APP_PASSWORD:-wxbch-local-rpc}"
     command:
+      - "-datadir=/data"
       - "-printtoconsole"
       - "-server=1"
       - "-listen=1"
@@ -29,6 +30,7 @@ services:
       test:
         - CMD
         - bitcoin-cli
+        - -datadir=/data
         - -rpcconnect=127.0.0.1
         - -rpcuser=wxbch
         - -rpcpassword=${APP_PASSWORD:-wxbch-local-rpc}
