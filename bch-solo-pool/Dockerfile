@@ -4,5 +4,5 @@ COPY package.json ./
 COPY src ./src
 RUN useradd --system --uid 1000 --create-home pool
 USER 1000
-EXPOSE 3334 8080
+EXPOSE 3336 8080
 CMD ["node","src/main.js"]
