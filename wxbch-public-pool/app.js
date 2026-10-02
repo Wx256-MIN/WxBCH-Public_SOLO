@@ -30,7 +30,7 @@ const rev=b=>Buffer.from(b).reverse();
 const u32le=n=>{const b=Buffer.alloc(4);b.writeUInt32LE(n>>>0);return b;};
 const u64le=n=>{const b=Buffer.alloc(8);b.writeBigUInt64LE(BigInt(n));return b;};
 function compactTarget(bits){const n=parseInt(bits,16),e=n>>>24,m=BigInt(n&0x007fffff);return e<=3?m>>BigInt(8*(3-e)):m<<BigInt(8*(e-3));}
-function targetForDifficulty(d){let t=D1/BigInt(Math.max(1,Math.floor(d)));const max=(1n<<256n)-1n;return t<1n?1n:t>max?max:t;}
+function targetForDifficulty(d){const x=Number(d);if(!Number.isFinite(x)||x<=0)return 1n;const scale=1000000000000n;const den=BigInt(Math.max(1,Math.round(x*1e12)));let t=(D1*scale)/den;const max=(1n<<256n)-1n;return t<1n?1n:t>max?max:t;}
 function hashInt(h){return BigInt("0x"+rev(h).toString("hex"));}
 function varint(n){if(n<0xfd)return Buffer.from([n]);if(n<=0xffff){const b=Buffer.alloc(3);b[0]=0xfd;b.writeUInt16LE(n,1);return b;}if(n<=0xffffffff){const b=Buffer.alloc(5);b[0]=0xfe;b.writeUInt32LE(n,1);return b;}const b=Buffer.alloc(9);b[0]=0xff;b.writeBigUInt64LE(BigInt(n),1);return b;}
 function pushData(data){const b=Buffer.from(data);if(b.length<76)return Buffer.concat([Buffer.from([b.length]),b]);if(b.length<=255)return Buffer.concat([Buffer.from([0x4c,b.length]),b]);throw new Error("push too large");}
