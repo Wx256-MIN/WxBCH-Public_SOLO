@@ -4,12 +4,12 @@ services:
   app_proxy:
     environment:
       APP_HOST: wxbch-public-pool_web_1
-      APP_PORT: 41838
-      PROXY_AUTH_ADD: "false"
+      APP_PORT: 8080
 
   web:
-    image: ghcr.io/wx256-min/wxbch-public-pool:1.0.5
+    image: ghcr.io/wx256-min/wxbch-public-pool:1.0.6
     restart: on-failure
+    init: true
     stop_grace_period: 30s
     ports:
       - "41837:41837/tcp"
@@ -21,9 +21,15 @@ services:
       BCHN_RPC_USER: "${APP_BITCOIN_RPC_USER}"
       BCHN_RPC_PASSWORD: "${APP_BITCOIN_RPC_PASS}"
       BCHN_RPC_PORT: "${APP_BITCOIN_RPC_PORT}"
-      BCHN_ZMQ_HOST: "${BCHN_ZMQ_HOST:-}"
+      BCHN_ZMQ_HOST: "tcp://${APP_BITCOIN_NODE_IP}:${APP_BITCOIN_ZMQ_HASHBLOCK_PORT}"
       STRATUM_PORT: "41837"
-      API_PORT: "41838"
+      API_PORT: "8080"
       NETWORK: "mainnet"
       POOL_IDENTIFIER: "WxBCH Public Pool"
       DB_PATH: "/data/pool.sqlite"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8080/api/pool').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
