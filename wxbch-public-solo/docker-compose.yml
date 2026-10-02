@@ -27,7 +27,7 @@ services:
       bchn:
         condition: service_healthy
     volumes:
-      - rpc_config:/run/wxbch:rw
+      - rpc_config:/run/wxbch:ro
       - ckpool_data:/var/lib/ckpool
       - ckpool_run:/run/ckpool
     ports: ["3333:3333"]
@@ -47,7 +47,7 @@ services:
       ckpool:
         condition: service_started
     volumes:
-      - rpc_config:/run/wxbch:ro
+      - rpc_config:/run/wxbch:rw
       - ckpool_run:/run/ckpool:ro
       - ckpool_data:/var/lib/ckpool:ro
     environment:
