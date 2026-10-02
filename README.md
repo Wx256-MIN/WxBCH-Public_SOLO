@@ -57,18 +57,38 @@ cp .env.example .env
 docker compose up -d --build
 ```
 
-Dashboard/API:
+Standalone Docker uses the default application ports:
 
+Dashboard/API:
 ```
-http://YOUR_POOL_IP:41838/
-http://YOUR_POOL_IP:41838/api/pool
+http://YOUR_POOL_IP:3334/
+http://YOUR_POOL_IP:3334/api/pool
 ```
 
 Stratum:
+```
+stratum+tcp://YOUR_POOL_IP:3333
+```
 
+### UmbrelOS
+
+The Umbrel package uses dedicated host ports so it does not collide with other mining apps:
+
+- Dashboard/proxy: `41838`
+- Stratum: `41837`
+- Backend target: `41839` (internal proxy target; normally do not open this in a browser)
+
+Miner:
 ```
-stratum+tcp://YOUR_POOL_IP:41837
+stratum+tcp://YOUR_UMBREL_IP:41837
 ```
+
+Dashboard:
+```
+http://YOUR_UMBREL_IP:41838/
+```
+
+The Umbrel package uses host networking and connects to BCHN through `127.0.0.1`, which is required for reliable umbrelOS 2.x operation.
 
 ## Important testing requirement
 
