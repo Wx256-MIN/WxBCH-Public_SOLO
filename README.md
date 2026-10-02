@@ -8,7 +8,7 @@ Use the following Git repository URL when adding a Community App Store:
 
 `https://github.com/Wx256-MIN/WxBCH-Public_SOLO.git`
 
-Umbrel Community App Stores use an `umbrel-app-store.yml` at the repository root and require each app directory to use the store ID as its prefix. This store uses ID `wxbch`, and the app is `wxbch-public-solo`. citeturn0search0turn0search2
+Umbrel Community App Stores use an `umbrel-app-store.yml` at the repository root and require each app directory to use the store ID as its prefix. This store uses ID `wxbch`, and the app is `wxbch-public-solo`.
 
 ## App
 
