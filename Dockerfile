@@ -4,8 +4,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends python3 make g+
 COPY package.json ./
 RUN npm install --omit=dev
 COPY app.js ./
-RUN mkdir -p /data && chown -R node:node /data
-USER node
+RUN mkdir -p /data
 ENV NODE_ENV=production
 VOLUME ["/data"]
 EXPOSE 3333 3334
