@@ -3,7 +3,7 @@ id: wxbch-public-pool
 category: bitcoin
 name: WxBCH Public Pool
 icon: https://raw.githubusercontent.com/Wx256-MIN/WxBCH-Public_SOLO/main/wxbch-public-pool/icon.png
-version: "1.0.11"
+version: "1.0.12"
 tagline: BCHN-native Stratum V1 solo mining pool
 dependencies:
   - sslabs-bitcoin-cash-node
