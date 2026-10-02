@@ -15,7 +15,7 @@ The Umbrel package is self-contained:
 - **ZMQ:** BCHN `hashblock` notifications are used for fast template refresh.
 - **No external mining-pool backend or third-party BCH node is required.**
 
-The current BCHN release is 29.1.0, and the BCHN project recommends upgrading older 28.x and earlier nodes. citeturn10search0turn10search2
+The current BCHN release is 29.1.0, and the BCHN project recommends upgrading older 28.x and earlier nodes.
 
 ## What was changed for BCHN
 
@@ -105,7 +105,7 @@ Before using mainnet hashpower, run this pool against BCHN regtest and verify an
 
 ## Node storage
 
-Bitcoin Cash Node stores the blockchain and chainstate locally. BCHN documentation notes that the full history requires a few hundred gigabytes and that initial synchronization can take hours or longer depending on hardware and network speed. citeturn0search2
+Bitcoin Cash Node stores the blockchain and chainstate locally. BCHN documentation notes that the full history requires a few hundred gigabytes and that initial synchronization can take hours or longer depending on hardware and network speed.
 
 Make sure the Umbrel storage location has enough free space for a full BCH mainnet node.
 
