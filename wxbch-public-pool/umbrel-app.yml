@@ -2,7 +2,8 @@ manifestVersion: 1
 id: wxbch-public-pool
 category: bitcoin
 name: WxBCH Public Pool
-version: "1.0.0"
+icon: icon.png
+version: "1.0.1"
 tagline: Bitcoin Cash solo mining pool for BCHN
 description: >-
   BCHN-native Public-Pool-style Stratum V1 solo mining pool for Bitcoin Cash.
