@@ -3,7 +3,7 @@
 Clean Bitcoin Cash solo mining for BCHN on Umbrel, following the simple Public Pool architecture.
 
 ## Miner
-URL: stratum+tcp://YOUR_UMBREL_IP:3334
+URL: stratum+tcp://YOUR_UMBREL_IP:3336
 Username: bitcoincash:YOUR_BCH_ADDRESS.worker1
 Password: x
 
