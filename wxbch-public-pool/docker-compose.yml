@@ -8,25 +8,21 @@ services:
       PROXY_AUTH_ADD: "false"
 
   web:
-    image: ghcr.io/wx256-min/wxbch-public-pool:1.0.1
+    image: ghcr.io/wx256-min/wxbch-public-pool:1.0.3
     restart: on-failure
     stop_grace_period: 30s
-    ports:
-      - "41837:3333/tcp"
-      - "41839:3334/tcp"
+    network_mode: host
     volumes:
       - "${APP_DATA_DIR}/data:/data"
     environment:
       NODE_ENV: production
-      BCHN_RPC_URL: "http://host.docker.internal:${APP_BITCOIN_RPC_PORT:-8332}"
+      BCHN_RPC_URL: "http://127.0.0.1:${APP_BITCOIN_RPC_PORT:-8332}"
       BCHN_RPC_USER: "${APP_BITCOIN_RPC_USER:-}"
       BCHN_RPC_PASSWORD: "${APP_BITCOIN_RPC_PASS:-}"
       BCHN_RPC_PORT: "${APP_BITCOIN_RPC_PORT:-8332}"
-      BCHN_ZMQ_HOST: "tcp://host.docker.internal:28332"
+      BCHN_ZMQ_HOST: "tcp://127.0.0.1:28332"
       STRATUM_PORT: "3333"
       API_PORT: "3334"
       NETWORK: "mainnet"
       POOL_IDENTIFIER: "WxBCH Public Pool"
       DB_PATH: "/data/pool.sqlite"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
