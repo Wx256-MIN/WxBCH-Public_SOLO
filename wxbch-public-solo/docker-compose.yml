@@ -5,7 +5,7 @@ services:
       APP_HOST: wxbch-public-solo_web_1
       APP_PORT: 8080
   bchn:
-    image: ghcr.io/wx256-min/wxbch-bchn:0.1.1
+    image: ghcr.io/wx256-min/wxbch-bchn:0.1.2
     restart: unless-stopped
     stop_grace_period: 2m
     volumes:
@@ -21,7 +21,7 @@ services:
       retries: 10
       start_period: 30s
   ckpool:
-    image: ghcr.io/wx256-min/wxbch-ckpool:0.1.1
+    image: ghcr.io/wx256-min/wxbch-ckpool:0.1.2
     restart: unless-stopped
     depends_on:
       bchn:
@@ -39,7 +39,7 @@ services:
       POOL_FEE: "0"
       POOL_NAME: "WxBCH Public SOLO"
   web:
-    image: ghcr.io/wx256-min/wxbch-web:0.1.1
+    image: ghcr.io/wx256-min/wxbch-web:0.1.2
     restart: unless-stopped
     depends_on:
       bchn:
@@ -56,7 +56,7 @@ services:
       CKPOOL_SOCKET_PARENT: /run
       CKPOOL_SOCKET_NAME: ckpool
       CKPOOL_SOCKET_PROCESS: stratifier
-      APP_VERSION: "0.1.1"
+      APP_VERSION: "0.1.2"
     expose: ["8080"]
 volumes:
   rpc_config:
