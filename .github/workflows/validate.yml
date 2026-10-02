@@ -1,0 +1,27 @@
+name: Validate
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate YAML
+        run: |
+          python3 -m pip install --quiet pyyaml
+          python3 - <<'PY'
+          import pathlib
+          import yaml
+          for p in [pathlib.Path("umbrel-app.yml"), pathlib.Path("docker-compose.yml")]:
+              with p.open() as f:
+                  yaml.safe_load(f)
+              print("valid:", p)
+          PY
+      - name: Validate shell
+        run: |
+          bash -n exports.sh
+          bash -n node/entrypoint.sh
+          bash -n ckpool/entrypoint.sh
