@@ -1,20 +1,39 @@
+version: "3.7"
+
 services:
-  wxbch-public-pool:
+  app_proxy:
+    environment:
+      APP_HOST: wxbch-public-pool_web_1
+      APP_PORT: 3337
+      PROXY_AUTH_ADD: "false"
+
+  web:
     build: .
-    container_name: wxbch-public-pool
-    restart: unless-stopped
-    env_file:
-      - .env
+    restart: on-failure
+    stop_grace_period: 30s
     ports:
       - "3336:3336/tcp"
-      - "3337:3337/tcp"
     volumes:
-      - pool-data:/data
-    healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3337/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
-      interval: 30s
-      timeout: 5s
-      retries: 5
-      start_period: 20s
-volumes:
-  pool-data:
+      - ${APP_DATA_DIR}/data:/data
+    environment:
+      NODE_ENV: production
+      RPC_URL: "http://${APP_BITCOIN_NODE_IP:-127.0.0.1}:${APP_BITCOIN_RPC_PORT:-8332}"
+      RPC_USER: "${APP_BITCOIN_RPC_USER:-}"
+      RPC_PASSWORD: "${APP_BITCOIN_RPC_PASS:-}"
+      ZMQ_HASHBLOCK: "tcp://${APP_BITCOIN_NODE_IP:-127.0.0.1}:28332"
+      STRATUM_HOST: "0.0.0.0"
+      STRATUM_PORT: "3336"
+      API_HOST: "0.0.0.0"
+      API_PORT: "3337"
+      DB_PATH: "/data/pool.sqlite"
+      COINBASE_TAG: "/WxBCH-Pool/"
+      INITIAL_DIFFICULTY: "8192"
+      MIN_DIFFICULTY: "1"
+      MAX_DIFFICULTY: "1000000000000"
+      TARGET_SHARE_SECONDS: "30"
+      VARDIFF_MIN_INTERVAL_SECONDS: "60"
+      JOB_REFRESH_SECONDS: "10"
+      EXTRANONCE1_SIZE: "4"
+      EXTRANONCE2_SIZE: "4"
+      VERSION_ROLLING_MASK: "1fffe000"
+      MAX_STRATUM_CONNECTIONS: "10000"
