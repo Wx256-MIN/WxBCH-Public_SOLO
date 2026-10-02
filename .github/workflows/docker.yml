@@ -28,4 +28,4 @@ jobs:
           platforms: linux/amd64,linux/arm64
           tags: |
             ghcr.io/wx256-min/wxbch-public-pool:latest
-            ghcr.io/wx256-min/wxbch-public-pool:1.0.5
+            ghcr.io/wx256-min/wxbch-public-pool:1.0.6
