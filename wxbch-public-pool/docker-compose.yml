@@ -39,3 +39,5 @@ services:
       EXTRANONCE2_SIZE: "4"
       VERSION_ROLLING_MASK: "1fffe000"
       MAX_STRATUM_CONNECTIONS: "10000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
