@@ -14,6 +14,7 @@ services:
     stop_grace_period: 30s
     ports:
       - "41837:41837/tcp"
+      - "41838:41838/tcp"
     volumes:
       - ${APP_DATA_DIR}/data:/data
     environment:
