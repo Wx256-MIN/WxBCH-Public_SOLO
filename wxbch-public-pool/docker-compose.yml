@@ -44,8 +44,7 @@ services:
     init: true
     stop_grace_period: 30s
     depends_on:
-      bchn:
-        condition: service_healthy
+      - bchn
     ports:
       - "41837:41837/tcp"
       - "41838:41838/tcp"
