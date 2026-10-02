@@ -1,1 +1,0 @@
-# WxBCH Public Pool — Umbrel\n\nUmbrel wrapper for the BCHN-native pool in the repository root.\n
