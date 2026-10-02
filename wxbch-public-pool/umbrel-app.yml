@@ -13,6 +13,7 @@ website: https://github.com/Wx256-MIN/WxBCH-Public_SOLO
 repo: https://github.com/Wx256-MIN/WxBCH-Public_SOLO
 support: https://github.com/Wx256-MIN/WxBCH-Public_SOLO/issues
 port: 3337
+icon: https://cdn.jsdelivr.net/gh/Wx256-MIN/WxBCH-Public_SOLO@main/wxbch-public-pool/icon.svg
 gallery: []
 path: ""
 defaultPassword: ""
