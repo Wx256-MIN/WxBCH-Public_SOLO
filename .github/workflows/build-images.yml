@@ -11,6 +11,10 @@ on:
       - "wxbch-public-solo/umbrel-app.yml"
   workflow_dispatch:
 
+concurrency:
+  group: wxbch-images
+  cancel-in-progress: true
+
 permissions:
   contents: read
   packages: write
