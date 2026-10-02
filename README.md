@@ -4,6 +4,19 @@
 
 Upstream reference: https://github.com/benjamin-wilson/public-pool
 
+## Architecture
+
+The Umbrel package is self-contained:
+
+- **BCHN node:** runs inside the WxBCH app stack.
+- **Pool:** connects to that BCHN node over the private Docker network.
+- **Stratum V1:** exposed on port `41837`.
+- **Dashboard/API:** exposed on port `41838` and through the Umbrel app proxy.
+- **ZMQ:** BCHN `hashblock` notifications are used for fast template refresh.
+- **No external mining-pool backend or third-party BCH node is required.**
+
+The current BCHN release is 29.1.0, and the BCHN project recommends upgrading older 28.x and earlier nodes. citeturn10search0turn10search2
+
 ## What was changed for BCHN
 
 - Uses BCHN `getblocktemplate`, `getmininginfo`, `submitblock`.
@@ -15,15 +28,14 @@ Upstream reference: https://github.com/benjamin-wilson/public-pool
 - Builds merkle branches directly from BCHN TXIDs.
 - Reconstructs and submits the complete BCH block through `submitblock`.
 - Supports Stratum V1, variable difficulty and BIP310 version rolling / ASICBoost.
-
-BCHN's current documentation describes `getblocktemplate` as the RPC that returns the data required to construct a block, including transactions, `coinbaseaux`, `coinbasevalue`, target, bits and height. BCHN also exposes `submitblock` and ZMQ block notifications.
+- Tracks worker shares, rejected shares and share difficulty in SQLite.
 
 ## Miner connection
 
 Use:
 
 ```
-stratum+tcp://YOUR_POOL_IP:41837
+stratum+tcp://YOUR_UMBREL_IP:41837
 ```
 
 Username is your BCH payout address, optionally followed by a worker name:
@@ -34,22 +46,39 @@ bitcoincash:qxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.worker1
 
 Password can be `x`.
 
-## BCHN configuration
+## UmbrelOS
 
-Example:
+Install **WxBCH Public Pool** from the WxBCH community app store.
 
-```ini
-server=1
-rpcbind=0.0.0.0
-rpcallowip=172.16.0.0/12
-rpcuser=pooluser
-rpcpassword=CHANGE_THIS_PASSWORD
-zmqpubhashblock=tcp://0.0.0.0:28332
+The app starts two containers:
+
+1. **BCHN** — synchronizes the Bitcoin Cash mainnet and provides RPC/ZMQ privately to the pool.
+2. **Web/Stratum** — runs the pool server and dashboard.
+
+### Ports
+
+- Dashboard/API: `41838`
+- Stratum V1: `41837`
+- BCHN RPC: internal only
+- BCHN ZMQ: internal only
+
+The BCHN RPC is intentionally not published to the LAN. Only the pool container can access it.
+
+### First startup
+
+A fresh BCHN node must synchronize the Bitcoin Cash blockchain before the pool can build live templates. During initial synchronization the dashboard may show:
+
+```
+height: null
+networkDifficulty: null
+miners: 0
 ```
 
-Use a firewall and a narrower RPC allow-list in production.
+Once BCHN is synchronized and the RPC becomes ready, the pool will automatically start refreshing templates.
 
 ## Run with Docker
+
+For standalone Docker, the root `docker-compose.yml` can connect the pool to an existing BCHN RPC:
 
 ```bash
 cp .env.example .env
@@ -57,7 +86,7 @@ cp .env.example .env
 docker compose up -d --build
 ```
 
-Standalone Docker uses the default application ports:
+Standalone Docker uses:
 
 Dashboard/API:
 ```
@@ -70,29 +99,15 @@ Stratum:
 stratum+tcp://YOUR_POOL_IP:3333
 ```
 
-### UmbrelOS
-
-The Umbrel package uses dedicated host ports so it does not collide with other mining apps:
-
-- Dashboard/proxy: `41838`
-- Stratum: `41837`
-- Backend target: `41839` (internal proxy target; normally do not open this in a browser)
-
-Miner:
-```
-stratum+tcp://YOUR_UMBREL_IP:41837
-```
-
-Dashboard:
-```
-http://YOUR_UMBREL_IP:41838/
-```
-
-The Umbrel package uses host networking and connects to BCHN through `127.0.0.1`, which is required for reliable umbrelOS 2.x operation.
-
 ## Important testing requirement
 
 Before using mainnet hashpower, run this pool against BCHN regtest and verify an actual solved block is accepted by `submitblock`. A successful JavaScript build alone is not proof of consensus correctness.
+
+## Node storage
+
+Bitcoin Cash Node stores the blockchain and chainstate locally. BCHN documentation notes that the full history requires a few hundred gigabytes and that initial synchronization can take hours or longer depending on hardware and network speed. citeturn0search2
+
+Make sure the Umbrel storage location has enough free space for a full BCH mainnet node.
 
 ## License
 
