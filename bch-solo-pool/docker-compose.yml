@@ -1,13 +1,12 @@
 version: "3.7"
-
 services:
   app_proxy:
     environment:
       APP_HOST: bch-solo-pool_server_1
       APP_PORT: 8080
       PROXY_AUTH_ADD: "true"
-
   server:
+    build: .
     image: ghcr.io/wx256-min/bch-solo-pool:latest
     user: "1000:1000"
     restart: unless-stopped
@@ -15,51 +14,20 @@ services:
     init: true
     security_opt:
       - no-new-privileges:true
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
     ports:
-      # Public LAN Stratum V1 endpoint for ASIC miners.
-      # Explicitly publish TCP on all host interfaces; app_proxy only handles the web UI.
       - "0.0.0.0:3334:3334/tcp"
-    expose:
-      - "3334"
-    volumes:
-      - ${APP_DATA_DIR}/data:/data
     environment:
-      POOL_ID: "BCH Solo Pool"
+      BCH_RPC_URL: "http://${APP_BITCOIN_CASH_NODE_NODE_IP}:${APP_BITCOIN_CASH_NODE_RPC_PORT}/"
+      BCH_RPC_USER: "${APP_BITCOIN_CASH_NODE_RPC_USER}"
+      BCH_RPC_PASSWORD: "${APP_BITCOIN_CASH_NODE_RPC_PASS}"
+      BCH_PAYOUT_ADDRESS: "${BCH_PAYOUT_ADDRESS}"
       STRATUM_HOST: "0.0.0.0"
       STRATUM_PORT: "3334"
       WEB_HOST: "0.0.0.0"
       WEB_PORT: "8080"
       START_DIFFICULTY: "1000"
-      VARDIFF_ENABLED: "true"
-      VARDIFF_TARGET_SECONDS: "30"
-      VARDIFF_MIN: "0.001"
+      VARDIFF_MIN: "1"
       VARDIFF_MAX: "65536"
       COINBASE_MESSAGE: "BCH Solo Pool"
-      DB_PATH: "/data/pool.sqlite3"
-      CONFIG_PATH: "/data/config.json"
-      LOG_LEVEL: "INFO"
-      # Standalone Umbrel BCHN app exports these connection details.
-      BCH_RPC_URL: "http://${APP_BITCOIN_CASH_NODE_NODE_IP}:${APP_BITCOIN_CASH_NODE_RPC_PORT}/"
-      BCH_RPC_USER: "${APP_BITCOIN_CASH_NODE_RPC_USER}"
-      BCH_RPC_PASSWORD: "${APP_BITCOIN_CASH_NODE_RPC_PASS}"
-      BCH_ZMQ_URL: "tcp://${APP_BITCOIN_CASH_NODE_NODE_IP}:${APP_BITCOIN_CASH_NODE_ZMQ_HASHBLOCK_PORT}"
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "python",
-          "-c",
-          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=3)"
-        ]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
-
