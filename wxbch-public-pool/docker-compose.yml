@@ -8,7 +8,7 @@ services:
       PROXY_AUTH_ADD: "false"
 
   web:
-    image: ghcr.io/wx256-min/wxbch-public-pool:1.0.3
+    image: ghcr.io/wx256-min/wxbch-public-pool:1.0.4
     restart: on-failure
     stop_grace_period: 30s
     network_mode: host
@@ -21,8 +21,8 @@ services:
       BCHN_RPC_PASSWORD: "${APP_BITCOIN_RPC_PASS:-}"
       BCHN_RPC_PORT: "${APP_BITCOIN_RPC_PORT:-8332}"
       BCHN_ZMQ_HOST: "tcp://127.0.0.1:28332"
-      STRATUM_PORT: "3333"
-      API_PORT: "3334"
+      STRATUM_PORT: "41837"
+      API_PORT: "41839"
       NETWORK: "mainnet"
       POOL_IDENTIFIER: "WxBCH Public Pool"
       DB_PATH: "/data/pool.sqlite"
