@@ -1,21 +1,63 @@
 version: "3.7"
 
 services:
+  app_proxy:
+    environment:
+      APP_HOST: wxbch-public-pool_web_1
+      APP_PORT: 41838
+      PROXY_AUTH_WHITELIST: "/api/*"
+
+  bchn:
+    image: mainnet/bitcoin-cash-node:latest
+    restart: on-failure
+    stop_grace_period: 2m
+    volumes:
+      - "${APP_DATA_DIR}/data/bchn:/root/.bitcoin"
+    environment:
+      BCHN_RPC_USER: wxbch
+      BCHN_RPC_PASSWORD: "${APP_PASSWORD:-wxbch-local-rpc}"
+    command:
+      - "-printtoconsole"
+      - "-server=1"
+      - "-listen=1"
+      - "-rpcbind=0.0.0.0"
+      - "-rpcallowip=0.0.0.0/0"
+      - "-rpcuser=wxbch"
+      - "-rpcpassword=${APP_PASSWORD:-wxbch-local-rpc}"
+      - "-zmqpubhashblock=tcp://0.0.0.0:28334"
+    healthcheck:
+      test:
+        - CMD
+        - bitcoin-cli
+        - -rpcconnect=127.0.0.1
+        - -rpcuser=wxbch
+        - -rpcpassword=${APP_PASSWORD:-wxbch-local-rpc}
+        - getblockchaininfo
+      interval: 30s
+      timeout: 10s
+      retries: 20
+      start_period: 30s
+
   web:
-    image: ghcr.io/wx256-min/wxbch-public-pool:1.0.8
+    image: ghcr.io/wx256-min/wxbch-public-pool:1.0.9
     restart: on-failure
     init: true
     stop_grace_period: 30s
-    network_mode: host
+    depends_on:
+      bchn:
+        condition: service_healthy
+    ports:
+      - "41837:41837/tcp"
+      - "41838:41838/tcp"
     volumes:
-      - "${APP_DATA_DIR}/data:/data"
+      - "${APP_DATA_DIR}/data/pool:/data"
     environment:
       NODE_ENV: production
-      BCHN_RPC_URL: "http://${APP_BITCOIN_NODE_IP:-127.0.0.1}:${APP_BITCOIN_RPC_PORT:-8332}"
-      BCHN_RPC_USER: "${APP_BITCOIN_RPC_USER:-}"
-      BCHN_RPC_PASSWORD: "${APP_BITCOIN_RPC_PASS:-}"
-      BCHN_RPC_PORT: "${APP_BITCOIN_RPC_PORT:-8332}"
-      BCHN_ZMQ_HOST: "tcp://${APP_BITCOIN_NODE_IP:-127.0.0.1}:${APP_BITCOIN_ZMQ_HASHBLOCK_PORT:-28332}"
+      BCHN_RPC_URL: "http://bchn:8332"
+      BCHN_RPC_USER: "wxbch"
+      BCHN_RPC_PASSWORD: "${APP_PASSWORD:-wxbch-local-rpc}"
+      BCHN_RPC_PORT: "8332"
+      BCHN_ZMQ_HOST: "tcp://bchn:28334"
       STRATUM_PORT: "41837"
       API_PORT: "41838"
       NETWORK: "mainnet"
