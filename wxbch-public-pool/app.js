@@ -14,10 +14,10 @@ const { cashAddressToLockingBytecode, base58AddressToLockingBytecode } = require
 const env=(k,d)=>process.env[k] ?? d;
 const cfg={
  rpcUrl:env("RPC_URL","http://127.0.0.1:8432"), rpcFallbackUrl:env("RPC_FALLBACK_URL","http://127.0.0.1:8332"), rpcUser:env("RPC_USER",""), rpcPassword:env("RPC_PASSWORD",""),
- zmq:env("ZMQ_HASHBLOCK",""), stratumHost:env("STRATUM_HOST","0.0.0.0"), stratumPort:Number(env("STRATUM_PORT","3336")),
- apiHost:env("API_HOST","0.0.0.0"), apiPort:Number(env("API_PORT","3337")), dbPath:env("DB_PATH","./data/pool.sqlite"),
+ zmq:env("ZMQ_HASHBLOCK",""), stratumHost:env("STRATUM_HOST","0.0.0.0"), stratumPort:Number(env("STRATUM_PORT","41837")),
+ apiHost:env("API_HOST","0.0.0.0"), apiPort:Number(env("API_PORT","41838")), dbPath:env("DB_PATH","./data/pool.sqlite"),
  tag:env("COINBASE_TAG","/WxBCH-Pool/"), extraHex:env("COINBASE_EXTRA_HEX",""),
- initialDiff:Number(env("INITIAL_DIFFICULTY","8192")), minDiff:Number(env("MIN_DIFFICULTY","1")),
+ initialDiff:Number(env("INITIAL_DIFFICULTY","8192")), minDiff:Number(env("MIN_DIFFICULTY","0.00001")),
  maxDiff:Number(env("MAX_DIFFICULTY","1000000000000")), targetShareSeconds:Number(env("TARGET_SHARE_SECONDS","30")),
  vardiffMinInterval:Number(env("VARDIFF_MIN_INTERVAL_SECONDS","60")), refreshSeconds:Number(env("JOB_REFRESH_SECONDS","10")),
  ex1Size:Number(env("EXTRANONCE1_SIZE","4")), ex2Size:Number(env("EXTRANONCE2_SIZE","4")),
@@ -147,7 +147,7 @@ function handle(s,m){
   if(m.method==="mining.suggest_difficulty"){const d=Number(m.params?.[0]);if(Number.isFinite(d))s.miner.difficulty=Math.min(cfg.maxDiff,Math.max(cfg.minDiff,d));send(s,{id,result:true,error:null});if(current&&s.authorized)notify(s,current,false);return;}
   if(m.method==="mining.extranonce.subscribe"){send(s,{id,result:true,error:null});return;}
   if(m.method==="mining.ping"){send(s,{id,result:true,error:null});return;}
-  if(m.method==="client.get_version"){send(s,{id,result:"WxBCH-Stratum/0.1.3",error:null});return;}
+  if(m.method==="client.get_version"){send(s,{id,result:"WxBCH-Stratum/0.1.4",error:null});return;}
   if(m.method==="mining.submit"){submitShare(s,m.params).then(()=>send(s,{id,result:true,error:null})).catch(e=>{const a=Array.isArray(e)?e:[20,e.message,null];send(s,{id,result:null,error:a});});return;}
   send(s,{id,result:null,error:[20,"method not supported",null]});
  }catch(e){send(s,{id,result:null,error:[20,e.message,null]});}
