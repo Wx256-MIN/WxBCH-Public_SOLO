@@ -142,6 +142,8 @@ function handle(s,m){
   if(m.method==="mining.authorize"){const username=String(m.params?.[0]||"");const{address,worker}=splitUser(username);addressScript(address);if(!s.ex1)s.ex1=crypto.randomBytes(cfg.ex1Size).toString("hex");s.username=username;s.miner=minerState(address,worker);s.authorized=true;send(s,{id,result:true,error:null});if(current)notify(s,current,current.clean);return;}
   if(m.method==="mining.suggest_difficulty"){const d=Number(m.params?.[0]);if(Number.isFinite(d))s.miner.difficulty=Math.min(cfg.maxDiff,Math.max(cfg.minDiff,d));send(s,{id,result:true,error:null});if(current&&s.authorized)notify(s,current,false);return;}
   if(m.method==="mining.extranonce.subscribe"){send(s,{id,result:true,error:null});return;}
+  if(m.method==="mining.ping"){send(s,{id,result:true,error:null});return;}
+  if(m.method==="client.get_version"){send(s,{id,result:"WxBCH-Stratum/0.1.3",error:null});return;}
   if(m.method==="mining.submit"){submitShare(s,m.params).then(()=>send(s,{id,result:true,error:null})).catch(e=>{const a=Array.isArray(e)?e:[20,e.message,null];send(s,{id,result:null,error:a});});return;}
   send(s,{id,result:null,error:[20,"method not supported",null]});
  }catch(e){send(s,{id,result:null,error:[20,e.message,null]});}
