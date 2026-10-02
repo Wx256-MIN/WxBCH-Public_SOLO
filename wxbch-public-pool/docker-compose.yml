@@ -3,8 +3,8 @@ version: "3.7"
 services:
   app_proxy:
     environment:
-      APP_HOST: wxbch-public-pool_web_1
-      APP_PORT: 3334
+      APP_HOST: $GATEWAY_IP
+      APP_PORT: 41839
       PROXY_AUTH_ADD: "false"
 
   web:
@@ -12,7 +12,8 @@ services:
     restart: on-failure
     stop_grace_period: 30s
     ports:
-      - "3333:3333/tcp"
+      - "41837:3333/tcp"
+      - "41839:3334/tcp"
     volumes:
       - "${APP_DATA_DIR}/data:/data"
     environment:
