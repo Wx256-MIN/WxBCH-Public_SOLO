@@ -30,6 +30,8 @@ const TARGET_SHARE_SECONDS = Number(process.env.TARGET_SHARE_SECONDS || 30);
 const VERSION_ROLLING_MASK = Number.parseInt(process.env.VERSION_ROLLING_MASK || '1fffe000', 16) >>> 0;
 const EXTRANONCE1_BYTES = 4;
 const EXTRANONCE2_BYTES = 8;
+const FAVICON_SVG = `<?xml version="1.0" encoding="UTF-8"?><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#14191f"/><circle cx="32" cy="28" r="21" fill="#f3a92c" stroke="#ffd670" stroke-width="2"/><circle cx="32" cy="28" r="17" fill="none" stroke="#704814" stroke-width="1.5"/><text x="32" y="36" text-anchor="middle" font-family="Arial,sans-serif" font-size="25" font-weight="700" fill="#14191f">B</text><path d="M15 49h34M19 54h26" stroke="#f3a92c" stroke-width="2.5" stroke-linecap="round"/></svg>`;
+
 const DIFF1_TARGET = 0x00000000ffffn * (1n << 208n);
 
 fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
@@ -464,9 +466,14 @@ function apiJson(res,status,data) {
 
 function apiServer(req,res) {
   const u=new URL(req.url,'http://localhost');
+  if (u.pathname==='/favicon.svg') {
+    res.writeHead(200,{'content-type':'image/svg+xml; charset=utf-8','cache-control':'public, max-age=86400'});
+    res.end(FAVICON_SVG);
+    return;
+  }
   if (u.pathname==='/') {
     res.writeHead(200,{'content-type':'text/html; charset=utf-8'});
-    res.end(`<!doctype html><html><head><meta charset="utf-8"><title>WxBCH Public Pool</title></head><body><h1>WxBCH Public Pool</h1><p>BCHN Stratum V1 solo pool</p><pre id="out">loading...</pre><script>fetch('/api/pool').then(r=>r.json()).then(x=>out.textContent=JSON.stringify(x,null,2))</script></body></html>`);
+    res.end(`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><title>WxBCH Public Pool</title></head><body><h1>WxBCH Public Pool</h1><p>BCHN Stratum V1 solo pool</p><pre id="out">loading...</pre><script>fetch('/api/pool').then(r=>r.json()).then(x=>out.textContent=JSON.stringify(x,null,2))</script></body></html>`);
     return;
   }
   if (u.pathname==='/api/pool') {
