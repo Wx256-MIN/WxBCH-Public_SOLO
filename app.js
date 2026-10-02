@@ -332,7 +332,7 @@ class Session {
       case 'mining.subscribe':
         this.userAgent = String(msg.params?.[0] || 'unknown');
         this.write({id:msg.id,error:null,result:[[['mining.notify',this.extranonce1]],this.extranonce1,this.extranonce2Size]});
-        if (currentJob) currentJob.notify(this);
+        if (currentJob && this.address) currentJob.notify(this);
         break;
       case 'mining.configure':
         this.configuredVersionRolling = Boolean(msg.params?.[1]?.['version-rolling'] || msg.params?.[0]?.includes?.('version-rolling'));
