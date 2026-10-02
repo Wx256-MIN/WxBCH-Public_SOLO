@@ -2,6 +2,7 @@ import base64
 import json
 import os
 import subprocess
+import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.request import Request, urlopen
 
@@ -11,6 +12,11 @@ RPC_ENV = "/run/wxbch/rpc.env"
 SOCK_PARENT = os.getenv("CKPOOL_SOCKET_PARENT", "/run")
 SOCK_NAME = os.getenv("CKPOOL_SOCKET_NAME", "ckpool")
 SOCK_PROCESS = os.getenv("CKPOOL_SOCKET_PROCESS", "stratifier")
+
+for _ in range(60):
+    if os.path.exists(RPC_ENV):
+        break
+    time.sleep(1)
 
 with open(RPC_ENV) as f:
     env = dict(line.strip().split("=", 1) for line in f if "=" in line)
@@ -34,7 +40,7 @@ def ck(command):
         marker = "Received response: "
         if marker in out:
             out = out.split(marker, 1)[1]
-        out = out.replace("\n", "")
+        out = "".join(line.strip() for line in out.splitlines())
         return json.loads(out)
     except Exception as e:
         return {"error": str(e)}
@@ -71,15 +77,12 @@ class Handler(BaseHTTPRequestHandler):
             except Exception as e:
                 self.send_json({"ok":False,"error":str(e)}, 503)
             return
-
         if self.path == "/api/workers":
             self.send_json(ck("workers"))
             return
-
         if self.path == "/api/users":
             self.send_json(ck("users"))
             return
-
         if self.path == "/":
             body = open("index.html", "rb").read()
             self.send_response(200)
@@ -88,7 +91,6 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(body)
             return
-
         self.send_error(404)
 
     def log_message(self, *_):
