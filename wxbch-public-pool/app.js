@@ -92,8 +92,10 @@ async function refreshTemplate(clean=true){
 function jobForSession(job,s){
  const {address}=splitUser(s.username),coinbase=buildCoinbase(job.t,s.ex1,"00".repeat(cfg.ex2Size),address);
  const scriptStart=4+1+32+4,scriptLenBytes=varint(coinbase[scriptStart]).length;
- const prefixLen=scriptStart+scriptLenBytes+pushData(scriptNum(job.t.height)).length+cfg.ex1Size;
- return{...job,coinb1:coinbase.subarray(0,prefixLen).toString("hex"),coinb2:coinbase.subarray(prefixLen+cfg.ex2Size).toString("hex"),
+ const scriptBodyStart=scriptStart+scriptLenBytes;
+ const flagsLen=job.t.coinbaseaux?.flags&&HEX.test(job.t.coinbaseaux.flags)?Buffer.from(job.t.coinbaseaux.flags,"hex").length:0;
+ const ex2Start=scriptBodyStart+pushData(scriptNum(job.t.height)).length+flagsLen+cfg.ex1Size;
+ return{...job,coinb1:coinbase.subarray(0,ex2Start).toString("hex"),coinb2:coinbase.subarray(ex2Start+cfg.ex2Size).toString("hex"),
    branches:job.branches.map(b=>b.toString("hex")),prevhash:wordReverseHex(job.t.previousblockhash),version:(job.t.version>>>0).toString(16).padStart(8,"0"),bits:job.t.bits,ntime:(job.t.curtime>>>0).toString(16).padStart(8,"0")};
 }
 function send(s,o){if(!s.socket.destroyed)s.socket.write(JSON.stringify(o)+"\n");}
