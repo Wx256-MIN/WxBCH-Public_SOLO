@@ -2,14 +2,14 @@ manifestVersion: 1
 id: wxbch-public-pool
 category: bitcoin
 name: BCHN Public Pool
-version: "0.1.4"
+version: "0.1.5"
 tagline: Stable Bitcoin Cash solo mining pool for ASIC miners
 description: >-
   A self-hosted Bitcoin Cash solo mining pool for BCHN-compatible nodes.
   Stratum V1, ASICBoost/version rolling, vardiff, worker statistics,
   rejected-share difficulty tracking, block submission, and a web dashboard.
 releaseNotes: >-
-  Fixed Umbrel packaging, app proxy routing, persistent storage, BCH template
+  Fixed Umbrel proxy routing, persistent storage, BCH template
   Merkle construction, coinbase extranonce splitting, and block accounting.
 developer: WxBCH Community
 website: https://github.com/Wx256-MIN/WxBCH-Public_SOLO
