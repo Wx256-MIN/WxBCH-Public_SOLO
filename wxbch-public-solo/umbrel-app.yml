@@ -4,7 +4,7 @@ name: WxBCH Public SOLO
 tagline: Bitcoin Cash full node and solo mining pool for Umbrel
 icon: https://bitcoincash.org/img/green/bitcoin-cash-circle.svg
 category: Mining Nodes
-version: "0.1.0"
+version: "0.1.1"
 port: 8080
 description: |
   Run a Bitcoin Cash Node and a local BCH solo-mining Stratum server on Umbrel.
@@ -19,7 +19,8 @@ support: https://github.com/Wx256-MIN/WxBCH-Public_SOLO/issues
 gallery:
   - https://bitcoincash.org/img/green/bitcoin-cash-circle.svg
 releaseNotes: |
-  2026-10-02 - Converted to a proper Umbrel Community App Store package.
+  2026-10-03 - Rebuilt container images for linux/amd64 and linux/arm64.
+  2026-10-03 - Updated image release to 0.1.1 for a clean Umbrel install.
 dependencies: []
 path: ""
 defaultUsername: ""
