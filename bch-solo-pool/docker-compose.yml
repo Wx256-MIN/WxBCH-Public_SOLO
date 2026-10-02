@@ -15,14 +15,14 @@ services:
     security_opt:
       - no-new-privileges:true
     ports:
-      - "0.0.0.0:3334:3334/tcp"
+      - "0.0.0.0:3336:3336/tcp"
     environment:
       BCH_RPC_URL: "http://${APP_BITCOIN_CASH_NODE_NODE_IP}:${APP_BITCOIN_CASH_NODE_RPC_PORT}/"
       BCH_RPC_USER: "${APP_BITCOIN_CASH_NODE_RPC_USER}"
       BCH_RPC_PASSWORD: "${APP_BITCOIN_CASH_NODE_RPC_PASS}"
       BCH_PAYOUT_ADDRESS: "${BCH_PAYOUT_ADDRESS}"
       STRATUM_HOST: "0.0.0.0"
-      STRATUM_PORT: "3334"
+      STRATUM_PORT: "3336"
       WEB_HOST: "0.0.0.0"
       WEB_PORT: "8080"
       START_DIFFICULTY: "1000"
