@@ -1,17 +1,17 @@
-require('dotenv').config();
+import 'dotenv/config';
 
-const net = require('net');
-const http = require('http');
-const crypto = require('crypto');
-const fs = require('fs');
-const path = require('path');
-const Database = require('better-sqlite3');
-const zmq = require('zeromq');
-const bitcoin = require('bitcoinjs-lib');
-const {
+import net from 'node:net';
+import http from 'node:http';
+import crypto from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
+import Database from 'better-sqlite3';
+import * as zmq from 'zeromq';
+import bitcoin from 'bitcoinjs-lib';
+import {
   cashAddressToLockingBytecode,
   base58AddressToLockingBytecode
-} = require('@bitauth/libauth');
+} from '@bitauth/libauth';
 
 const STRATUM_PORT = Number(process.env.STRATUM_PORT || 3333);
 const API_PORT = Number(process.env.API_PORT || 3334);
@@ -531,4 +531,4 @@ setInterval(()=>{
   }
 },60000);
 
-module.exports={compactToTarget,targetToDifficulty};
+export { compactToTarget, targetToDifficulty };
