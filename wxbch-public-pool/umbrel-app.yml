@@ -5,7 +5,7 @@ name: WxBCH Public Pool
 version: "1.0.0"
 tagline: Bitcoin Cash solo mining pool for BCHN
 description: >-
-  A BCHN-native Public-Pool-style Stratum V1 solo mining pool for Bitcoin Cash.
+  BCHN-native Public-Pool-style Stratum V1 solo mining pool for Bitcoin Cash.
 developer: Wx256-MIN
 website: https://github.com/Wx256-MIN/WxBCH-Public_SOLO
 repo: https://github.com/Wx256-MIN/WxBCH-Public_SOLO
