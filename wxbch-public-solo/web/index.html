@@ -20,7 +20,7 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#111;color:#eee;m
 </main><script>
 let last=null;
 const fmt=n=>Number(n||0).toLocaleString();
-const mib=n=>n?((Number(n)/1024).toFixed(1)+' GB'):'—';
+const mib=n=>{const b=Number(n||0);if(!b)return '—';if(b<1024*1024)return (b/1024).toFixed(1)+' KiB';if(b<1024*1024*1024)return (b/1024/1024).toFixed(1)+' MiB';return (b/1024/1024/1024).toFixed(1)+' GiB';};
 async function refresh(){try{const r=await fetch('/api/status',{cache:'no-store'}),d=await r.json();if(!d.ok)throw Error(d.error||'Unavailable');last=d;const n=d.node||{},p=d.pool||{},s=d.settings||{};
 const pct=n.headers?Math.min(100,(n.blocks/n.headers)*100):0;
 document.querySelector('#state').innerHTML='<span class="ok">● Node reachable</span> · '+(n.initialblockdownload?'<span class="warn">Initial block download</span>':'Synced / ready');
