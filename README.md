@@ -23,7 +23,7 @@ BCHN's current documentation describes `getblocktemplate` as the RPC that return
 Use:
 
 ```
-stratum+tcp://YOUR_POOL_IP:3333
+stratum+tcp://YOUR_POOL_IP:41837
 ```
 
 Username is your BCH payout address, optionally followed by a worker name:
@@ -60,14 +60,14 @@ docker compose up -d --build
 Dashboard/API:
 
 ```
-http://YOUR_POOL_IP:3334/
-http://YOUR_POOL_IP:3334/api/pool
+http://YOUR_POOL_IP:41838/
+http://YOUR_POOL_IP:41838/api/pool
 ```
 
 Stratum:
 
 ```
-stratum+tcp://YOUR_POOL_IP:3333
+stratum+tcp://YOUR_POOL_IP:41837
 ```
 
 ## Important testing requirement
