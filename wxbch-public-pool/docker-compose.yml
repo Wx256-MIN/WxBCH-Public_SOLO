@@ -19,10 +19,11 @@ services:
       - ${APP_DATA_DIR}/data:/data
     environment:
       NODE_ENV: production
-      RPC_URL: "http://${APP_BITCOIN_NODE_IP:-127.0.0.1}:${APP_BITCOIN_RPC_PORT:-8332}"
+      RPC_URL: "http://${APP_BITCOIN_NODE_IP:-host.docker.internal}:${APP_BITCOIN_RPC_PORT:-8432}"
+      RPC_FALLBACK_URL: "http://host.docker.internal:8332"
       RPC_USER: "${APP_BITCOIN_RPC_USER:-}"
       RPC_PASSWORD: "${APP_BITCOIN_RPC_PASS:-}"
-      ZMQ_HASHBLOCK: "tcp://${APP_BITCOIN_NODE_IP:-127.0.0.1}:28332"
+      ZMQ_HASHBLOCK: "tcp://host.docker.internal:28332"
       STRATUM_HOST: "0.0.0.0"
       STRATUM_PORT: "3336"
       API_HOST: "0.0.0.0"
