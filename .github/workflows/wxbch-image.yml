@@ -39,5 +39,5 @@ jobs:
           push: true
           platforms: linux/amd64,linux/arm64
           tags: |
-            ghcr.io/wx256-min/wxbch-public-pool:0.1.4
+            ghcr.io/wx256-min/wxbch-public-pool:0.1.5
             ghcr.io/wx256-min/wxbch-public-pool:latest
