@@ -14,8 +14,8 @@ const { cashAddressToLockingBytecode, base58AddressToLockingBytecode } = require
 const env=(k,d)=>process.env[k] ?? d;
 const cfg={
  rpcUrl:env("RPC_URL","http://127.0.0.1:8432"), rpcFallbackUrl:env("RPC_FALLBACK_URL","http://127.0.0.1:8332"), rpcUser:env("RPC_USER",""), rpcPassword:env("RPC_PASSWORD",""),
- zmq:env("ZMQ_HASHBLOCK",""), stratumHost:env("STRATUM_HOST","0.0.0.0"), stratumPort:Number(env("STRATUM_PORT","3336")),
- apiHost:env("API_HOST","0.0.0.0"), apiPort:Number(env("API_PORT","3337")), dbPath:env("DB_PATH","./data/pool.sqlite"),
+ zmq:env("ZMQ_HASHBLOCK",""), stratumHost:env("STRATUM_HOST","0.0.0.0"), stratumPort:Number(env("STRATUM_PORT","41837")),
+ apiHost:env("API_HOST","0.0.0.0"), apiPort:Number(env("API_PORT","41838")), dbPath:env("DB_PATH","./data/pool.sqlite"),
  tag:env("COINBASE_TAG","/WxBCH-Pool/"), extraHex:env("COINBASE_EXTRA_HEX",""),
  initialDiff:Number(env("INITIAL_DIFFICULTY","8192")), minDiff:Number(env("MIN_DIFFICULTY","1")),
  maxDiff:Number(env("MAX_DIFFICULTY","1000000000000")), targetShareSeconds:Number(env("TARGET_SHARE_SECONDS","30")),
