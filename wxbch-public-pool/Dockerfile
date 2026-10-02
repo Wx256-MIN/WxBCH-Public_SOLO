@@ -17,6 +17,6 @@ USER node
 ENV NODE_ENV=production
 
 VOLUME ["/data"]
-EXPOSE 3336 3337
+EXPOSE 41837 41838
 
 CMD ["node", "app.js"]
