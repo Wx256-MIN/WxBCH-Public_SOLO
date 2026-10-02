@@ -5,10 +5,7 @@ services:
       APP_HOST: wxbch-public-solo_web_1
       APP_PORT: 8080
   bchn:
-    build:
-      context: ./node
-      args:
-        BCHN_VERSION: "29.2.0"
+    image: ghcr.io/wx256-min/wxbch-bchn:0.1.0
     restart: unless-stopped
     stop_grace_period: 2m
     volumes:
@@ -24,8 +21,7 @@ services:
       retries: 10
       start_period: 30s
   ckpool:
-    build:
-      context: ./ckpool
+    image: ghcr.io/wx256-min/wxbch-ckpool:0.1.0
     restart: unless-stopped
     depends_on:
       bchn:
@@ -43,8 +39,7 @@ services:
       POOL_FEE: "0"
       POOL_NAME: "WxBCH Public SOLO"
   web:
-    build:
-      context: ./web
+    image: ghcr.io/wx256-min/wxbch-web:0.1.0
     restart: unless-stopped
     depends_on:
       bchn:
