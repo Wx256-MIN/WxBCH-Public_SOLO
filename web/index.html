@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WxBCH Public SOLO</title>
+<style>
+body{font-family:system-ui,-apple-system,sans-serif;background:#111;color:#eee;margin:0;padding:28px}
+main{max-width:1050px;margin:auto}
+h1{margin:0 0 6px}.muted{color:#aaa}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin:22px 0}
+.card{background:#1b1b1b;border:1px solid #303030;border-radius:14px;padding:18px}.value{font-size:28px;font-weight:700;margin-top:7px}
+.ok{color:#55d68a}.warn{color:#ffca62}.bad{color:#ff6969}
+code{background:#222;padding:3px 6px;border-radius:5px}.box{background:#181818;border-radius:12px;padding:18px;line-height:1.65}
+</style>
+</head>
+<body>
+<main>
+<h1>WxBCH Public SOLO</h1>
+<div class="muted">Bitcoin Cash Node + local solo Stratum</div>
+<div id="state" class="box" style="margin-top:20px">Loading…</div>
+<div class="grid">
+<div class="card"><div class="muted">Block Height</div><div id="blocks" class="value">—</div></div>
+<div class="card"><div class="muted">Sync</div><div id="sync" class="value">—</div></div>
+<div class="card"><div class="muted">Peers</div><div id="peers" class="value">—</div></div>
+<div class="card"><div class="muted">Pool Hashrate</div><div id="hashrate" class="value">—</div></div>
+<div class="card"><div class="muted">Workers</div><div id="workers" class="value">—</div></div>
+<div class="card"><div class="muted">Shares</div><div id="shares" class="value">—</div></div>
+</div>
+<div class="box">
+<h2>Connect an ASIC</h2>
+<p>Stratum endpoint: <code>stratum+tcp://UMBREL_IP:3333</code></p>
+<p>Username: your <strong>Bitcoin Cash address</strong>, optionally followed by <code>.worker</code>.</p>
+<p>Password: <code>x</code></p>
+<p>Example: <code>bitcoincash:qq...worker01</code></p>
+<p class="muted">The node must finish initial synchronization before mining is productive.</p>
+</div>
+</main>
+<script>
+async function refresh(){
+ try{
+  const r=await fetch('/api/status',{cache:'no-store'}); const d=await r.json();
+  if(!d.ok) throw new Error(d.error||'Unavailable');
+  const n=d.node||{},p=d.pool||{};
+  document.querySelector('#state').innerHTML='<span class="ok">● Node reachable</span> · '+(n.initialblockdownload?'Initial sync in progress':'Synced/ready');
+  document.querySelector('#blocks').textContent=n.blocks??'—';
+  document.querySelector('#sync').textContent=n.initialblockdownload?'SYNCING':((Number(n.verificationprogress||0)*100).toFixed(2)+'%');
+  document.querySelector('#peers').textContent=n.connections??'—';
+  document.querySelector('#hashrate').textContent=(p.hashrate1m||p.hashrate1m_ghs||'0')+' GH/s';
+  document.querySelector('#workers').textContent=p.workers??'—';
+  document.querySelector('#shares').textContent=p.accounted_shares??p.shares??'—';
+ }catch(e){document.querySelector('#state').innerHTML='<span class="bad">● Service unavailable</span> · '+e.message}
+}
+refresh(); setInterval(refresh,5000);
+</script>
+</body>
+</html>
