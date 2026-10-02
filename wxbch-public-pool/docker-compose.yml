@@ -4,17 +4,17 @@ services:
   app_proxy:
     environment:
       APP_HOST: wxbch-public-pool_web_1
-      APP_PORT: 3337
+      APP_PORT: 41838
       PROXY_AUTH_ADD: "false"
 
   web:
-    image: ghcr.io/wx256-min/wxbch-public-pool:0.1.3
+    image: ghcr.io/wx256-min/wxbch-public-pool:0.1.4
     build: .
     init: true
     restart: on-failure
     stop_grace_period: 30s
     ports:
-      - "3336:3336/tcp"
+      - "41837:41837/tcp"
     volumes:
       - ${APP_DATA_DIR}/data:/data
     environment:
@@ -25,9 +25,9 @@ services:
       RPC_PASSWORD: "${APP_BITCOIN_RPC_PASS:-}"
       ZMQ_HASHBLOCK: "tcp://host.docker.internal:28332"
       STRATUM_HOST: "0.0.0.0"
-      STRATUM_PORT: "3336"
+      STRATUM_PORT: "41837"
       API_HOST: "0.0.0.0"
-      API_PORT: "3337"
+      API_PORT: "41838"
       DB_PATH: "/data/pool.sqlite"
       COINBASE_TAG: "/WxBCH-Pool/"
       INITIAL_DIFFICULTY: "8192"
