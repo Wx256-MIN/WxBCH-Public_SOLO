@@ -1,0 +1,21 @@
+services:
+  wxbch-public-pool:
+    build: .
+    container_name: wxbch-public-pool
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "3336:3336/tcp"
+      - "3337:3337/tcp"
+    volumes:
+      - pool-data:/data
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3337/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+volumes:
+  pool-data:
