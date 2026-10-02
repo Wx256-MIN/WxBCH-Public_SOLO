@@ -80,7 +80,7 @@ function buildCoinbase(t,ex1,ex2,address){
  if(script.length<2||script.length>100)throw new Error("coinbase scriptSig must be 2..100 bytes");
  return Buffer.concat([u32le(1),Buffer.from([1]),Buffer.alloc(32),Buffer.from("ffffffff","hex"),varint(script.length),script,Buffer.from("ffffffff","hex"),Buffer.from([1]),u64le(t.coinbasevalue),pushData(payout),Buffer.from("00000000","hex")]);
 }
-function txMerkleBranch(t){return(t.transactions||[]).map(x=>rev(Buffer.from(x.txid||dsha(Buffer.from(x.data,"hex")).toString("hex"),"hex")));}
+function txMerkleBranch(t){return(t.transactions||[]).map(x=>Buffer.from(x.txid||x.hash||dsha(Buffer.from(x.data,"hex")).toString("hex"),"hex"));}
 function merkleRoot(coinbase,branches){let root=dsha(coinbase);for(const b of branches)root=dsha(Buffer.concat([root,b]));return root;}
 function wordReverseHex(hex){const b=Buffer.from(hex,"hex"),o=Buffer.alloc(b.length);for(let i=0;i<b.length;i+=4)Buffer.from(b.subarray(i,i+4)).reverse().copy(o,i);return o.toString("hex");}
 
